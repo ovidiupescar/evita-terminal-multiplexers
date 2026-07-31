@@ -1,26 +1,51 @@
-# YOUR MODULE NAME
+# Terminal multiplexers
 
-Intro
+The connection drops and the run dies with it. That is the problem a
+terminal multiplexer solves: your commands run inside a session owned by a
+process on the remote machine, and the terminal you look at is only a client
+that can leave and come back. The same session holds several windows and
+panes, so one connection shows the job, a shell and the file you are editing
+at once.
+
+This module builds that from a single experiment, then uses it: **tmux** for
+the sessions, windows, panes and scrollback, **GNU Screen** as the fallback
+found on systems without tmux, and an editing session that survives a
+detach and proves from outside that the file reached the disk. Every screen
+in the material was captured from a running terminal, including the
+refusals: the session ended by `exit`, the nesting tmux declines, and the
+kill that leaves an unwritten buffer in a recovery file.
+
+This module implements **SDS.OSV1-USE1.7** of the EVITA Competence and
+Qualification Framework (course SDS.OSV1, "Virtualization and the Linux
+operating system").
 
 :::{prereq}
 
-- FIXME: Add prerequisites here.
-- ...
-- ...
+- Comfortable shell use: navigating directories, listing files, reading a
+  command's output. SDS.OSV1-USE1.3 covers the file system tree.
+- Opening a file in nano or Vim, typing, writing and leaving.
+  SDS.OSV1-USE1.6 covers the editors; this module puts them in a session and
+  teaches neither.
+- An Ubuntu 24.04 LTS shell with an ordinary user account, and `sudo` once
+  to install two packages. The setup episode gives options for Windows,
+  macOS and Linux hosts.
 :::
 
 :::{toctree}
 :caption: Software setup
 :maxdepth: 1
 
-episodes/ModuleName-0-SoftwareSetup
+episodes/use17-1-setup
 :::
 
 ```{toctree}
 :caption: The lesson
 :maxdepth: 1
 
-episodes/ModuleName-1-EpisodeName
+episodes/use17-2-sessions
+episodes/use17-3-windows-and-panes
+episodes/use17-4-editing-in-a-session
+episodes/quiz/quiz
 ```
 
 :::{toctree}
@@ -29,27 +54,44 @@ episodes/ModuleName-1-EpisodeName
 
 instructor-guide
 reference-for-learners
+authoring-evidence
 :::
 
 ## Learning outcomes
 
-FIXME: Add learning outcomes, preferably using verbs from Bloom's Taxonomy
+This material serves new Linux users and HPC users who work on machines they
+reach over SSH, where a dropped connection costs a running job or an
+unfinished edit.
 
-This material is for ...
+By the end of this module (about 2 hours), you can:
 
-By the end of this module, learners should:
+- **Give examples for use cases for such a multiplexer** *(official CQF
+  outcome)*: name the situations a multiplexer answers and the mechanism
+  behind each one, from a command that has to survive a dropped connection,
+  through several views inside one connection, to two people attached to one
+  screen; and say what it does not do, including surviving a reboot.
+- **Review editing files using a terminal multiplexer** *(official CQF
+  outcome)*: open a file in an editor inside a session, detach with the
+  buffer unwritten, reattach and finish the edit, prove from outside the
+  session what is on disk, send a keystroke the prefix would otherwise take,
+  and recover an unwritten buffer after the session is killed.
 
-- ...
-- ...
+The outcome texts above are the official CQF outcomes reproduced verbatim.
+See {doc}`authoring-evidence`.
 
 ## See also
 
 :::{admonition} Credit
 :class: warning
 
-FIXME: Related material
+Author: Ovidiu Pescar, Fisherman Engineering.
 
-Don't forget to check out additional course materials from ...
+Built with the [EVITA module
+template](https://code.europa.eu/eurohpc-ju/evita/module-template). How the
+module was built and verified is documented in {doc}`authoring-evidence`.
+The editors this module runs inside a session are taught in the companion
+module SDS.OSV1-USE1.6, and the signals behind Ctrl+C and Ctrl+Z in
+SDS.OSV1-USE1.8.
 
 :::
 

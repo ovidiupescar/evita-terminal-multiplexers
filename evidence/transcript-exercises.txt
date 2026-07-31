@@ -1,0 +1,167 @@
+
+===== EPISODE 3 CHECKPOINT - list-windows on the layout built in the guided practice =====
+
+$ tmux new-session -d -s layout -x 80 -y 24 -c "$HOME/use17"
+[exit 0]
+$ tmux split-window -h -t layout:0
+[exit 0]
+$ tmux new-window -t layout -n notes -c "$HOME/use17"
+[exit 0]
+$ tmux list-windows -t layout
+0: bash- (2 panes) [80x24] [layout 8205,80x24,0,0{40x24,0,0,0,39x24,41,0,1}] @0
+1: notes* (1 panes) [80x24] [layout b25f,80x24,0,0,2] @1 (active)
+[exit 0]
+$ tmux kill-session -t layout
+[exit 0]
+
+===== EX1 - a session that proves itself =====
+
+$ tmux new-session -d -s harvest -c "$HOME/use17" "$HOME/use17/ticker.sh > $HOME/use17/harvest.log 2>&1"
+[exit 0]
+$ tmux ls
+harvest: 1 windows (created Fri Jul 31 10:19:28 2026)
+[exit 0]
+$ sleep 5; wc -l < harvest.log
+5
+[exit 0]
+$ sleep 5; wc -l < harvest.log
+10
+[exit 0]
+$ tmux kill-session -t harvest; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ sleep 2; wc -l < harvest.log; pgrep -af "bash .*ticker.sh" || echo "no ticker.sh process is running"
+10
+no ticker.sh process is running
+[exit 0]
+
+===== EX2 - a layout for a real task =====
+
+$ tmux new-session -d -s monitor -x 80 -y 24 -c "$HOME/use17"
+[exit 0]
+$ tmux rename-window -t monitor:0 logs
+[exit 0]
+$ tmux split-window -h -t monitor:logs
+[exit 0]
+$ tmux new-window -t monitor -n notes -c "$HOME/use17"
+[exit 0]
+$ tmux list-windows -t monitor
+0: logs- (2 panes) [80x24] [layout 8205,80x24,0,0{40x24,0,0,0,39x24,41,0,1}] @0
+1: notes* (1 panes) [80x24] [layout b25f,80x24,0,0,2] @1 (active)
+[exit 0]
+$ tmux list-panes -a -t monitor
+monitor:0.0: [40x24] [history 0/2000, 960 bytes] %0
+monitor:0.1: [39x24] [history 0/2000, 960 bytes] %1 (active)
+monitor:1.0: [80x24] [history 0/2000, 960 bytes] %2 (active)
+[exit 0]
+$ tmux ls
+monitor: 2 windows (created Fri Jul 31 10:19:40 2026)
+[exit 0]
+$ tmux kill-session -t monitor; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+
+===== EX3 - finish an edit across a disconnection =====
+
+$ printf "input = data.csv\nworkdir = /scratch\n" > settings.conf; cat settings.conf
+input = data.csv
+workdir = /scratch
+[exit 0]
+$ tmux new-session -d -s remote -x 80 -y 24 -c "$HOME/use17" "nano settings.conf"
+[exit 0]
+$ sleep 2; tmux send-keys -t remote Down End Enter; sleep 1; tmux send-keys -t remote -l "threads = 4"; sleep 1; tmux ls
+remote: 1 windows (created Fri Jul 31 10:19:40 2026)
+[exit 0]
+--- the buffer is unwritten and the client is detached: this is step 3 ---
+$ md5sum settings.conf
+d3c3f610d8a76fa5469b094bb4283f80  settings.conf
+[exit 0]
+$ wc -l < settings.conf
+2
+[exit 0]
+$ grep -c "threads = 4" settings.conf || echo "(grep found nothing, exit 1)"
+0
+(grep found nothing, exit 1)
+[exit 0]
+--- step 4: write with Ctrl+O Enter, leave with Ctrl+X ---
+$ tmux send-keys -t remote C-o; sleep 1; tmux send-keys -t remote Enter; sleep 1; tmux send-keys -t remote C-x; sleep 2; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+--- step 5 ---
+$ cat settings.conf
+input = data.csv
+workdir = /scratch
+threads = 4
+[exit 0]
+$ md5sum settings.conf
+82a7fb7e0f6a48cafe00a042f0211798  settings.conf
+[exit 0]
+$ wc -l < settings.conf
+3
+[exit 0]
+$ grep -c "threads = 4" settings.conf
+1
+[exit 0]
+
+===== HX1 - the hands-on task, executed end to end =====
+
+$ tmux new-session -d -s run -x 80 -y 24 -c "$HOME/use17"
+[exit 0]
+$ tmux rename-window -t run:0 job
+[exit 0]
+$ tmux send-keys -t run:job "$HOME/use17/ticker.sh > $HOME/use17/job.log 2>&1" Enter; sleep 3; wc -l < job.log
+3
+[exit 0]
+$ tmux new-window -t run -n notes -c "$HOME/use17"
+[exit 0]
+$ tmux send-keys -t run:notes "nano handover.txt" Enter; sleep 2; tmux send-keys -t run:notes -l "the job was started at 10:00"; sleep 1
+[exit 0]
+$ tmux list-windows -t run
+0: job- (1 panes) [80x24] [layout b25d,80x24,0,0,0] @0
+1: notes* (1 panes) [80x24] [layout b25e,80x24,0,0,1] @1 (active)
+[exit 0]
+--- detached: nothing is drawing the session ---
+$ tmux ls
+run: 2 windows (created Fri Jul 31 10:19:48 2026)
+[exit 0]
+$ ls handover.txt 2>&1
+ls: cannot access 'handover.txt': No such file or directory
+[exit 2]
+$ sleep 5; wc -l < job.log
+11
+[exit 0]
+--- reattach, write the note, stop the job ---
+$ tmux send-keys -t run:notes C-o; sleep 1; tmux send-keys -t run:notes Enter; sleep 1; tmux send-keys -t run:notes C-x; sleep 1; cat handover.txt
+the job was started at 10:00
+[exit 0]
+$ md5sum handover.txt
+2b6d8d109709df8eef6405bc3c5c7c6e  handover.txt
+[exit 0]
+$ wc -l < handover.txt
+1
+[exit 0]
+$ tmux send-keys -t run:job C-c; sleep 1; wc -l < job.log
+14
+[exit 0]
+$ sleep 3; wc -l < job.log
+14
+[exit 0]
+$ tmux kill-session -t run; sleep 1; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ pgrep -af "bash .*ticker.sh" || echo "no ticker.sh process is running"
+no ticker.sh process is running
+[exit 0]
+
+===== CLEANUP =====
+
+$ tmux kill-server 2>/dev/null; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ cd ~ && rm -rf ~/use17 && ls -d ~/use17 2>&1
+ls: cannot access '/home/ovidiu/use17': No such file or directory
+[exit 2]
+
+===== HARVEST COMPLETE =====
+
+2026-07-31T07:20:07Z
