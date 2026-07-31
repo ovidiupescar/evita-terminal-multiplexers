@@ -1,0 +1,42 @@
+[project]
+# FIXME: change the name and description
+name = "your-module-name"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "jupytext>=1.18.1",
+  "myst-nb>=1.3.0",
+  "setuptools>=80.9.0",
+  "sphinx>=8.2.3",
+  "sphinx-evita>=0.3.1b0",
+  "sphinx-lesson>=0.8.16",
+  "sphinxcontrib-bibtex>=2.6.5",
+  ## The following are optional
+  # "jupyterlite-pyodide-kernel>=0.7.2",
+  # "jupyterlite-sphinx>=0.22.1",
+]
+
+[dependency-groups]
+dev = [
+  { include-group = "notebook" },
+  { include-group = "tests" },
+  "jupyterlab>=4",
+  "jupyterlab-myst>=2.4.2",
+]
+# All dependencies used within Jupyter Notebooks
+notebook = []
+tests = [
+    "nox>=2026.4.10",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = false
+
+[tool.jupytext]
+formats = "ipynb,md:myst"

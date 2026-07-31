@@ -1,0 +1,130 @@
+# GitLab CI/CD configuration for Sphinx documentation
+#
+# This configuration mirrors the GitHub Actions workflow (.github/workflows/sphinx.yml)
+# and deploys to GitLab Pages with multi-branch support.
+#
+# License: CC-0. Based on:
+#   https://github.com/coderefinery/sphinx-lesson-template/blob/main/.github/workflows/sphinx.yml
+
+image: python:3.13
+
+stages:
+  - build
+  - deploy
+
+variables:
+  DEFAULT_BRANCH: "main"
+  MAIN_BUILD_FORMAT: "html"  # or "dirhtml"
+  GENERATE_PDF: "false"
+  GENERATE_SINGLEHTML: "false"
+  PDF_FILENAME: "lesson.pdf"
+  MULTIBRANCH: "true"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GIT_LFS_SKIP_SMUDGE: "0"
+
+# Cache pip packages to speed up builds
+cache:
+  key: "${CI_COMMIT_REF_SLUG}-pip"
+  paths:
+    - .cache/pip
+
+# Run nox (tests/linters)
+tests:
+  stage: build
+  tags:
+    - evita
+  script:
+    - pip install nox
+    - FORCE_COLOR=1 nox
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Build documentation in all formats
+build-docs:
+  stage: build
+  tags:
+    - evita
+  script:
+    # Install dependencies
+    - python -m pip install --upgrade pip
+    - pip install --group notebook .
+
+    # Debug information
+    - echo "CI_COMMIT_REF_NAME = ${CI_COMMIT_REF_NAME}"
+    - echo "CI_PIPELINE_SOURCE = ${CI_PIPELINE_SOURCE}"
+    - echo "GENERATE_PDF = ${GENERATE_PDF}"
+    - echo "GENERATE_SINGLEHTML = ${GENERATE_SINGLEHTML}"
+    - git branch -a
+    - git remote -v
+    - python -V
+    - pip list --not-required
+    - pip list
+
+    # Build (main format)
+    - make ${MAIN_BUILD_FORMAT}
+
+    # Build singlehtml if enabled
+    - |
+      if [ "$GENERATE_SINGLEHTML" = "true" ]; then
+        echo "Generating singlehtml..."
+        make singlehtml
+        mv _build/singlehtml/ _build/${MAIN_BUILD_FORMAT}/singlehtml/
+      fi
+
+    # Build PDF if enabled
+    - |
+      if [ "$GENERATE_PDF" = "true" ]; then
+        echo "Generating PDF..."
+        # Install Chromium dependencies for pyppeteer
+        apt-get update
+        apt-get install -y chromium # libxss1 libasound2 libatk-bridge2.0-0 libgtk-3-0
+        pip install sphinx_pyppeteer_builder
+        # Configure pyppeteer to run in Docker (no sandbox)
+        export PYPPETEER_CHROMIUM_ARGS="--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage"
+        make pyppeteer
+        mv _build/pyppeteer/*.pdf _build/${MAIN_BUILD_FORMAT}/${PDF_FILENAME}
+      fi
+
+  artifacts:
+    paths:
+      - _build/${MAIN_BUILD_FORMAT}/
+    expire_in: 1 week
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Deploy to GitLab Pages
+# Note: This job MUST be named "pages" for GitLab Pages to work
+pages:
+  stage: deploy
+  pages: true  # specifies that this is a Pages job and publishes the default public directory
+  tags:
+    - evita
+  dependencies:
+    - build-docs
+  script:
+    # Multi-branch deployment logic
+    # Main branch deploys to root, other branches to /branch/<branch-name>/
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "$DEFAULT_BRANCH" ]; then
+        echo "Deploying main branch to root..."
+        mkdir -p public
+        cp -r _build/${MAIN_BUILD_FORMAT}/* public/
+      else
+        echo "Deploying branch ${CI_COMMIT_REF_NAME} to /branch/${CI_COMMIT_REF_SLUG}/..."
+        mkdir -p public/branch/$CI_COMMIT_REF_SLUG
+        cp -r _build/${MAIN_BUILD_FORMAT}/* public/branch/$CI_COMMIT_REF_SLUG/
+      fi
+
+  artifacts:
+    paths:
+      - public
+
+  rules:
+    # Deploy main branch to root
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $DEFAULT_BRANCH'
+    # Deploy other branches if multibranch is enabled
+    - if: '$CI_PIPELINE_SOURCE == "push" && $MULTIBRANCH == "true"'
