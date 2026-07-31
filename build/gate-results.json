@@ -1,0 +1,46 @@
+{
+  "schema_version": "1",
+  "gate": "static-preflight",
+  "validator_version": "0.4.0",
+  "checks": [
+    "schema",
+    "placeholders",
+    "alt-text",
+    "style-advisory",
+    "mcq-lint",
+    "mcq-option-rendering",
+    "objective-map",
+    "questions-reconciliation",
+    "source-ledger",
+    "masks",
+    "rubric-rendering",
+    "transcript-attribution",
+    "visual-outcome-figure",
+    "self-check-script"
+  ],
+  "timestamp": "2026-07-31T07:31:52.946113+00:00",
+  "git": {
+    "sha": "48fabef5831bab684b2cc4d1b67746f594d7e8ee",
+    "dirty": true
+  },
+  "inputs_sha256": "c804c0632754a5019e5b3f979ea9a56bf3bff4d541d239cfd4029673dd5a3178",
+  "files_hashed": [
+    "masks.yaml",
+    "module.yaml",
+    "questions.yaml",
+    "sources.yaml",
+    "content\\authoring-evidence.md",
+    "content\\episodes\\quiz\\quiz.md",
+    "content\\episodes\\use17-1-setup.md",
+    "content\\episodes\\use17-2-sessions.md",
+    "content\\episodes\\use17-3-windows-and-panes.md",
+    "content\\episodes\\use17-4-editing-in-a-session.md",
+    "content\\index.md",
+    "content\\instructor-guide.md",
+    "content\\reference-for-learners.md",
+    "docs\\design-notes.md",
+    "README.md"
+  ],
+  "findings": [],
+  "result": "pass"
+}
