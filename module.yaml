@@ -1,0 +1,196 @@
+# Module manifest — SDS.OSV1-USE1.7, authored with the
+# technical-training-authoring skill (assessments designed before content;
+# every shown output executed on the pinned baseline and harvested into
+# evidence/).
+module:
+  cqf_id: SDS.OSV1-USE1.7
+  skill_id: {scheme: HPC-CF, value: "USE1.7"}
+  title: Terminal multiplexers
+  hours: 2
+  status: review
+  license: {content: CC-BY-SA-4.0, code: MIT}
+
+environments:
+  - id: local-windows
+    audience_path: windows
+    specification: "Windows 11 + WSL2 Ubuntu 24.04.1 LTS, tmux 3.4, GNU Screen 4.9.1, GNU nano 7.2, Vim 9.1, ordinary user account"
+    evidence: verified
+    note: >-
+      All transcripts in evidence/ were harvested here. The screens the
+      episodes show were produced by running the learner's tmux session
+      inside a second tmux server held at 80 columns by 24 rows and
+      capturing that pane, so each screen is the real terminal content
+      rather than a redrawing. The two servers use different socket names,
+      so the sessions listed inside the learner's session are only their
+      own.
+  - id: local-linux
+    audience_path: linux
+    specification: "Ubuntu 24.04 LTS in a disposable VM (Multipass, libvirt, VirtualBox) or on bare metal, tmux 3.4, GNU Screen 4.9.1, ordinary user account"
+    evidence: supported
+    note: >-
+      Same distribution and same packages as the verified path. The Ubuntu
+      24.04 archive carries tmux 3.4-1ubuntu0.1 and screen 4.9.1-1ubuntu1,
+      recorded in evidence/transcript-setup.txt.
+  - id: local-macos
+    audience_path: macos
+    specification: "macOS + Multipass or UTM running Ubuntu 24.04 LTS, ordinary user account"
+    evidence: supported
+    note: >-
+      tmux runs inside the Ubuntu guest, so the key names in this module are
+      the guest's. On an Apple keyboard the Control key is the one this
+      module calls Ctrl; the Command key is not used. A macOS terminal that
+      sends Option as Meta is not required, because this module uses no
+      Alt-based binding.
+  - id: hpc-cluster
+    audience_path: slurm
+    specification: "Generic EuroHPC cluster login node: tmux or screen over SSH in the user's own home directory, ordinary user account"
+    evidence: supported
+    note: >-
+      No cluster access during authoring. A login-node session that outlives
+      a dropped SSH connection is the situation this module trains for, and
+      every command in it runs in the user's own directories without
+      privileges. Two things differ on a cluster: which multiplexer is
+      installed (screen is present on most systems the authors have used,
+      tmux is usual but not guaranteed), and that the disconnect is a real
+      event rather than a staged one. Site policy also matters: some centres
+      kill leftover login-node processes, so a session is not a place to run
+      compute. Declared as a justified limitation.
+
+versions:
+  python: "3.12"
+  ubuntu: "24.04"
+  tmux: "3.4"
+  screen: "4.9.1"
+  nano: "7.2"
+  vim: "9.1"
+
+cqf_baseline:
+  source_version: "EVITA CQF course list, final version 2026-06-01"
+  outcomes_verbatim: true
+  transcription_note: >-
+    The official outcome texts are on page 32 of the CQF course list. Unlike
+    the neighbouring modules, neither of this module's outcomes is wrapped
+    across a page line, so both are single-line quotations. The first
+    outcome reads "Give examples for use cases for such a multiplexer": the
+    repeated "for" and the pointing "such a" come from the source, which
+    reads the outcome directly under the module title, and both are
+    reproduced unchanged. No orthographic errors, so each
+    official_source_text field is character-identical to the official field.
+    Recorded in content/authoring-evidence.md.
+
+cqf_deltas: []
+
+outcomes:
+  - id: O1
+    official: "Give examples for use cases for such a multiplexer"
+    official_source_text: "Give examples for use cases for such a multiplexer"
+    observable_form: >-
+      Given a described situation on a remote machine, the learner states
+      whether a terminal multiplexer answers it and names the mechanism that
+      does so: a session owned by a server process on the remote host, which
+      keeps running when the client that displays it goes away, so a long
+      command survives a dropped connection; several windows and panes in
+      one connection, so logs, a job and an editor are visible at once; and
+      a session that a second client can attach to, so two people see the
+      same screen. The learner also names what a multiplexer does not do,
+      including surviving a reboot of the host and protecting an editor
+      buffer that was never written.
+    bloom: understand
+    components: [session-persistence, disconnect-behaviour, multiple-views, use-case-selection]
+    activities: [ep2-frame, ep2-evidence, ep2-worked, ep2-guided, ep2-independent, ep3-worked, ep3-guided, ep3-independent]
+    assessments: [q1, q2, q3, rc1, rc2, ex1, ex2, hx1]
+    evidence_level: verified
+  - id: O2
+    official: "Review editing files using a terminal multiplexer"
+    official_source_text: "Review editing files using a terminal multiplexer"
+    observable_form: >-
+      The learner opens a file in an editor inside a tmux session, detaches
+      while the editor is still running and the buffer is unwritten,
+      reattaches from a new client, finishes the edit, writes the file, and
+      proves from outside the session that the new content is on disk. The
+      learner explains where the prefix key goes when an editor is running
+      in the pane and which keystroke reaches the editor instead, and states
+      what remains on disk when a session is killed with an unwritten
+      buffer.
+    bloom: apply
+    components: [editor-in-session, detach-reattach-edit, prefix-key-routing, save-and-verify, unsaved-buffer-on-kill]
+    activities: [ep4-worked, ep4-guided, ep4-independent]
+    assessments: [q4, q5, rc3, ex3, hx1]
+    evidence_level: verified
+
+assessments:
+  - id: q1
+    type: mcq
+    covers: [use-case-selection, session-persistence]
+  - id: q2
+    type: mcq
+    covers: [disconnect-behaviour]
+  - id: q3
+    type: mcq
+    covers: [session-persistence]
+  - id: q4
+    type: mcq
+    covers: [prefix-key-routing, editor-in-session]
+  - id: q5
+    type: mcq
+    covers: [unsaved-buffer-on-kill, save-and-verify]
+  - id: rc1
+    type: retrieval-check
+    covers: [session-persistence, disconnect-behaviour]
+  - id: rc2
+    type: retrieval-check
+    covers: [multiple-views, use-case-selection]
+  - id: rc3
+    type: retrieval-check
+    covers: [detach-reattach-edit, prefix-key-routing, unsaved-buffer-on-kill]
+  - id: ex1
+    type: exercise
+    covers: [session-persistence, disconnect-behaviour]
+    negative_path: declared        # exit in the last pane ends the session; tmux attach then reports no server
+  - id: ex2
+    type: exercise
+    covers: [multiple-views, use-case-selection]
+    negative_path: declared        # a killed pane leaves the window; the last pane closed ends the window
+  - id: ex3
+    type: exercise
+    covers: [detach-reattach-edit, save-and-verify, prefix-key-routing]
+    negative_path: declared        # session killed with an unwritten buffer leaves only the editor's recovery file
+  - id: hx1
+    type: hands-on
+    covers: [session-persistence, detach-reattach-edit, save-and-verify, multiple-views]
+    rubric: required
+
+lab_safety:
+  cleanup: verified
+  rationale: >-
+    Every file this module creates is written under one working directory
+    (~/use17) that the learner makes in the setup episode and removes in the
+    cleanup section of the last episode; the removal is verified with a
+    listing that must report no such directory. Every tmux and screen
+    session the module starts is named, and the cleanup section kills the
+    tmux server and verifies that "tmux ls" reports no server and
+    "screen -ls" reports no sockets, so no process is left running after the
+    module. The setup episode installs two packages (tmux and screen) with
+    apt; the cleanup section states that both are left in place on purpose,
+    because a disposable VM is discarded whole. The staged failures are a
+    session ended by exit, a detached client, and a killed server, none of
+    which changes state outside the working directory. No service, no
+    boot-time state and no root-owned file is created.
+
+gates_required:
+  - G0_completeness
+  - G1_terminology
+  - G2_build
+  - G3_links_cff
+  - G4_lab
+  - G5_objective_map
+  - G6_accessibility
+  - G7_pedagogy
+  - G8_dry_run
+  - G9_sme
+
+sme_approval:
+  pinned_to: versions
+  reviewed_git_sha: null
+  by: null
+  date: null

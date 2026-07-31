@@ -1,0 +1,134 @@
+# Machine-readable quiz items — designed before episode content (backward
+# design). Mirrors content/episodes/quiz/quiz.md.
+questions:
+  - id: q1
+    outcome_ids: [O1]
+    format: mcq
+    delivery: [supervised, unsupervised]
+    stem: >-
+      A preprocessing script takes forty minutes and is started over SSH on
+      a cluster login node from a laptop that suspends when its lid closes.
+      A colleague suggests starting it inside tmux. Which statement names
+      what tmux changes about that run?
+    options:
+      - "the script runs under a tmux server process on the login node, so closing the laptop removes the client that was displaying the session and leaves the script running"
+      - "tmux sends traffic through the connection at short intervals, so the connection to the login node stays open while the laptop is suspended"
+      - "tmux records the output of the script in a file on the login node and replays that file at the next login, so the run continues where the terminal stopped"
+      - "tmux hands the script to the login shell as a background job, so the shell stops passing on the signal it receives when the connection ends"
+    answer: "the script runs under a tmux server process on the login node, so closing the laptop removes the client that was displaying the session and leaves the script running"
+    misconceptions:
+      - "persistence attributed to the connection being kept alive rather than to the session living on the remote host"
+      - "a multiplexer read as a logging and replay tool"
+      - "detaching conflated with backgrounding a job in the shell"
+    feedback: >-
+      The tmux server runs on the login node and owns the session; the
+      client only draws it. Losing the client leaves the server and every
+      process in the session untouched. Keeping the connection alive is a
+      different technique that fails as soon as the connection does drop,
+      replay would show old output rather than a running command, and
+      backgrounding a job in the shell is a separate mechanism that does not
+      give the session back on the next login (Episode 2).
+    exposure: formative
+  - id: q2
+    outcome_ids: [O1]
+    format: mcq
+    delivery: [supervised, unsupervised]
+    stem: >-
+      A learner watches a growing log with "tail -f" inside a tmux session
+      called logs. They press Ctrl+B and then d. The shell prompt returns
+      and the line "[detached (from session logs)]" appears above it. What
+      is the state of the tail process at that moment?
+    options:
+      - "tail keeps running in the session, which the tmux server still holds, and the client that was drawing the session has disconnected"
+      - "tail is stopped in the same way as after Ctrl+Z, and it resumes reading the log when the session is attached again"
+      - "tail received the interrupt signal that Ctrl+C sends, so the session now holds a shell with no command running in it"
+      - "tail was written into the saved state of the session, and it starts reading the log from the beginning at the next attach"
+    answer: "tail keeps running in the session, which the tmux server still holds, and the client that was drawing the session has disconnected"
+    misconceptions:
+      - "detach confused with the job-control stop that Ctrl+Z performs"
+      - "detach confused with terminating the running command"
+      - "a session assumed to be serialized to disk and restarted on attach"
+    feedback: >-
+      Detaching disconnects the client. The server, the session, the shell
+      in it and every process that shell started continue, which is why the
+      log keeps being read while nobody is looking. Ctrl+Z stops a process
+      and Ctrl+C interrupts it; neither is what Ctrl+B d does, and no state
+      is written to disk (Episode 2).
+    exposure: formative
+  - id: q3
+    outcome_ids: [O1]
+    format: mcq
+    delivery: [supervised, unsupervised]
+    stem: >-
+      A session called build was detached and left running. The machine is
+      rebooted. After the next login "tmux ls" answers "no server running on
+      /tmp/tmux-1000/default". Which statement explains that answer?
+    options:
+      - "the tmux server is an ordinary process on that machine, so the reboot ended it together with every session it was holding"
+      - "the sessions are stored under /tmp/tmux-1000 and come back when tmux attach is run with the name of the session"
+      - "the sessions belong to the SSH connection, so they were lost because the reboot closed the connection rather than because it ended the server"
+      - "the server was started by the login shell of the earlier session, so the sessions return once the same user logs in on that machine again"
+    answer: "the tmux server is an ordinary process on that machine, so the reboot ended it together with every session it was holding"
+    misconceptions:
+      - "session state assumed to be persisted on disk and restorable after a reboot"
+      - "session ownership attributed to the SSH connection rather than to the server process"
+      - "the server assumed to be restarted with the user session"
+    feedback: >-
+      A session is memory in a running server process, not a file. The path
+      under /tmp is the socket the clients connect through, and it is gone
+      with the server. A multiplexer answers a dropped connection, not a
+      restarted machine; work that must outlive a reboot belongs in a batch
+      job or in a file on disk (Episode 2).
+    exposure: formative
+  - id: q4
+    outcome_ids: [O2]
+    format: mcq
+    delivery: [supervised, unsupervised]
+    stem: >-
+      nano is editing a file in a tmux pane. The learner wants nano's Where
+      Is search, so they press Ctrl+B and then w. Instead of a search
+      prompt, a list of the windows of the session appears. Which statement
+      describes what happened and how to reach nano with that key?
+    options:
+      - "tmux read Ctrl+B as its prefix and took the next key as its own command; pressing Ctrl+B twice sends one Ctrl+B through to nano"
+      - "nano stops reading control keys while its buffer differs from the file, so tmux received the key and answered with its own window list"
+      - "the pane had been left in copy mode, where tmux reads the keys itself; leaving copy mode with q gives Ctrl+B back to nano"
+      - "the terminal delivers Ctrl+B to the process in the foreground of the outermost shell, which is the tmux client rather than nano"
+    answer: "tmux read Ctrl+B as its prefix and took the next key as its own command; pressing Ctrl+B twice sends one Ctrl+B through to nano"
+    misconceptions:
+      - "the key conflict attributed to the editor rather than to the prefix"
+      - "the prefix confused with copy mode"
+      - "keys assumed to reach the outermost process instead of the pane"
+    feedback: >-
+      tmux watches for its prefix, Ctrl+B by default, and reads the key that
+      follows as a tmux command; w is choose-tree. The pane never sees
+      either key. Pressing the prefix twice sends the literal Ctrl+B to the
+      program in the pane, which is how nano's Where Is is reached from
+      inside a session (Episode 4).
+    exposure: formative
+  - id: q5
+    outcome_ids: [O2]
+    format: mcq
+    delivery: [supervised, unsupervised]
+    stem: >-
+      A file report.txt is open in Vim in a session called edit. Three lines
+      have been typed and no write command has been given. From another
+      terminal the learner runs "tmux kill-session -t edit". What does the
+      working directory hold afterwards?
+    options:
+      - "report.txt with the content it had before the edit, next to the swap file .report.txt.swp that holds the unwritten change"
+      - "report.txt with the three new lines in it, because tmux writes the contents of the pane to the file before it ends the session"
+      - "report.txt with the content it had before the edit and no other file, because ending the session removes what the pane created"
+      - "report.txt with no content in it, because Vim empties the file when it opens it and writes the text back at the first write command"
+    answer: "report.txt with the content it had before the edit, next to the swap file .report.txt.swp that holds the unwritten change"
+    misconceptions:
+      - "a multiplexer assumed to save an editor buffer when the session ends"
+      - "the recovery file overlooked, so the change is believed to be gone"
+      - "an editor assumed to truncate the file at open"
+    feedback: >-
+      Killing the session ends the processes in it. Vim answers the hangup
+      by preserving its swap file and exiting, so the edit is recoverable
+      with "vim -r report.txt" but the file itself is untouched. tmux moves
+      no data into files. Vim reads the file into a buffer and leaves the
+      original in place until a write is requested (Episode 4).
+    exposure: formative
