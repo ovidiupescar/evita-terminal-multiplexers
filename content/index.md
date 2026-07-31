@@ -98,7 +98,9 @@ SDS.OSV1-USE1.8.
 ::::{admonition} License
 :class: attention
 
-FIXME: Ensure licenses are correct, and a plain-text copy is added to the repository.
+Pedagogical material and media are licensed CC BY-SA 4.0; the code snippets
+and the harvest scripts are licensed MIT. Plain-text copies are in `LICENSE`
+and `LICENSE.code` in the repository.
 
 :::{admonition} CC BY-SA for media and pedagogical material
 :class: attention dropdown

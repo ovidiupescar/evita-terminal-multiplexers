@@ -1,0 +1,112 @@
+===== usage =====
+
+$ /home/ovidiu/self-check.sh
+usage: self-check.sh ex1|ex2|ex3|hx1-open|hx1-final|cleanup
+[exit 2]
+
+===== ex1: correct state =====
+
+$ /home/ovidiu/self-check.sh ex1
+PASS  a session named harvest exists
+      harvest.log has 3 lines, waiting five seconds
+      harvest.log has 7 lines now
+PASS  harvest.log grew while nothing was attached
+PASS  no client is attached
+
+All criteria met.
+[exit 0]
+
+===== ex1: wrong state (no session, no growth) =====
+
+$ /home/ovidiu/self-check.sh ex1
+FAIL  a session named harvest exists
+      harvest.log has 8 lines, waiting five seconds
+      harvest.log has 8 lines now
+FAIL  harvest.log grew while nothing was attached -- it did not grow
+PASS  no client is attached
+
+2 criterion/criteria not met.
+[exit 2]
+
+===== ex2: correct state =====
+
+$ /home/ovidiu/self-check.sh ex2
+PASS  a session named monitor exists
+PASS  window logs holds two panes
+PASS  window notes holds one pane
+PASS  the session holds three panes in total
+
+All criteria met.
+[exit 0]
+
+===== ex3: correct state =====
+
+$ /home/ovidiu/self-check.sh ex3
+PASS  settings.conf exists
+PASS  settings.conf holds three lines
+PASS  the line threads = 4 is on disk exactly once
+PASS  no session named remote is left
+
+All criteria met.
+[exit 0]
+
+===== ex3: wrong state (line missing) =====
+
+$ /home/ovidiu/self-check.sh ex3
+PASS  settings.conf exists
+FAIL  settings.conf holds three lines -- found 2
+FAIL  the line threads = 4 is on disk exactly once
+PASS  no session named remote is left
+
+2 criterion/criteria not met.
+[exit 2]
+
+===== hx1-open: correct state =====
+
+$ /home/ovidiu/self-check.sh hx1-open
+PASS  a session named run exists
+PASS  a window named job exists
+PASS  a window named notes exists
+      job.log has 2 lines, waiting five seconds
+      job.log has 7 lines now
+PASS  job.log grew while nothing was attached
+PASS  handover.txt is not on disk yet
+
+All criteria met.
+[exit 0]
+
+===== hx1-final: correct state =====
+
+$ /home/ovidiu/self-check.sh hx1-final
+PASS  handover.txt is on disk
+PASS  handover.txt holds at least one line
+PASS  job.log stopped growing, so the job was stopped
+PASS  no session named run is left
+
+All criteria met.
+[exit 0]
+
+===== cleanup: before the cleanup is done =====
+
+$ /home/ovidiu/self-check.sh cleanup
+PASS  no tmux server is running
+PASS  no screen session is left
+FAIL  the working directory is gone -- /home/ovidiu/use17 still exists
+PASS  no ticker process is left running
+
+1 criterion/criteria not met.
+[exit 1]
+
+===== cleanup: after the cleanup is done =====
+
+$ /home/ovidiu/self-check.sh cleanup
+PASS  no tmux server is running
+PASS  no screen session is left
+PASS  the working directory is gone
+PASS  no ticker process is left running
+
+All criteria met.
+[exit 0]
+
+===== done =====
+2026-07-31T07:29:28Z

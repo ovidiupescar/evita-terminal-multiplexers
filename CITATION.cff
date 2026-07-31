@@ -1,2 +1,43 @@
-# This CITATION.cff file was generated with cffinit.
-# FIXME: Visit https://bit.ly/cffinit to generate yours today!
+cff-version: 1.2.0
+title: "Terminal multiplexers (SDS.OSV1-USE1.7)"
+message: >-
+  If you use this training module, please cite it using the
+  metadata from this file.
+type: dataset
+authors:
+  - given-names: Ovidiu
+    family-names: Pescar
+    email: ovidiupescar@gmail.com
+    affiliation: Fisherman Engineering
+repository-code: "https://github.com/ovidiupescar/evita-terminal-multiplexers"
+abstract: >-
+  EVITA training module for course SDS.OSV1 (Virtualization and the
+  Linux operating system), module USE1.7: what a terminal multiplexer
+  is for, and how to use one. A tmux server on the remote machine owns
+  the session, so a command survives a dropped connection; windows and
+  panes give several views inside one connection; and an editor running
+  in a session can be left mid-edit and picked up again. Four episodes
+  with executed console evidence and 52 captured terminal screens, five
+  staged failures (a session ended by exit, the nesting refusal, an
+  attach with no server, a killed pane, and a session killed while a
+  Vim buffer was unwritten), a GNU Screen section for systems without
+  tmux, and a summative quiz with a hands-on task; baseline Ubuntu
+  24.04 LTS, tmux 3.4, GNU Screen 4.09.01, ordinary user account.
+identifiers:
+  - type: other
+    value: "SDS.OSV1-USE1.7"
+    description: "EVITA CQF module identifier (CQF course list, 2026-06-01)"
+  - type: other
+    value: "USE1.7"
+    description: "HPC Competence Framework skill tree identifier"
+keywords:
+  - linux
+  - tmux
+  - screen
+  - terminal
+  - multiplexer
+  - ssh
+  - training
+  - evita
+  - eurohpc
+license: CC-BY-SA-4.0

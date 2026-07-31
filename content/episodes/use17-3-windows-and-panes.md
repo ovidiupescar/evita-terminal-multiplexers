@@ -329,8 +329,20 @@ Build a session called `monitor` with:
 
 Success criteria: `tmux list-windows -t monitor` shows exactly two windows
 with those names and those pane counts, and `tmux list-panes -a -t monitor`
-shows three panes in total. Then state, in one sentence per view, which use
-case each of the three panes serves.
+shows three panes in total, which the self-check script asks for you:
+
+```console
+$ bash episodes/code/self-check.sh ex2
+PASS  a session named monitor exists
+PASS  window logs holds two panes
+PASS  window notes holds one pane
+PASS  the session holds three panes in total
+
+All criteria met.
+```
+
+Then state, in one sentence per view, which use case each of the three panes
+serves.
 
 ::::{solution}
 :class: dropdown

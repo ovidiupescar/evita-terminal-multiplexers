@@ -13,16 +13,13 @@
 
 # -- Project information -----------------------------------------------------
 
-# FIXME: choose title
-project = "Your module name"
-# FIXME: insert correct author
-author = "the contributors"
+project = "Terminal multiplexers (SDS.OSV1-USE1.7)"
+author = "Ovidiu Pescar, Fisherman Engineering"
 copyright = f"2026, EVITA project and {author}"
 
-# FIXME: git organization / user that the repository belongs to
-git_forge = "code.europa.eu"  # or "github.com"
-git_user = "eurohpc-ju/evita"
-git_repo_name = ""  # auto-detected from dirname if blank
+git_forge = "github.com"
+git_user = "ovidiupescar"
+git_repo_name = "evita-terminal-multiplexers"
 git_version = "main"
 conf_py_path = "content"
 
@@ -44,7 +41,6 @@ if git_forge == "github.com":
     # githubpages just adds a .nojekyll file
     extensions.append("sphinx.ext.githubpages")
 
-# FIXME: add bibtex files for references if any
 bibtex_bibfiles = []
 
 # Settings for myst_nb:
@@ -129,7 +125,6 @@ html_context = {
     "conf_py_path": conf_py_path,
 }
 
-# FIXME: modify intersphinx mapping to link to external content or ignore this if you
 # do not have any external links to documentations which use Sphinx
 
 # Intersphinx mapping.  For example, with this you can use

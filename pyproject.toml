@@ -1,8 +1,7 @@
 [project]
-# FIXME: change the name and description
-name = "your-module-name"
-version = "0.1.0"
-description = "Add your description here"
+name = "evita-terminal-multiplexers"
+version = "1.0.0"
+description = "EVITA training module SDS.OSV1-USE1.7: terminal multiplexers - sessions that outlive the connection, windows and panes, and editing a file inside a session"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -422,7 +422,20 @@ $ grep -c "threads = 4" settings.conf
 ```
 
 All five criteria: a different checksum, three lines instead of two, one
-match for the new line, and no session left. The checksum in step 3 is the
+match for the new line, and no session left, which the self-check script
+reports in one go:
+
+```console
+$ bash episodes/code/self-check.sh ex3
+PASS  settings.conf exists
+PASS  settings.conf holds three lines
+PASS  the line threads = 4 is on disk exactly once
+PASS  no session named remote is left
+
+All criteria met.
+```
+
+The checksum in step 3 is the
 part that matters. It is the same before and after the detach, which is the
 evidence that a session keeps the editor and not the file.
 
@@ -447,7 +460,19 @@ no tmux, screen or ticker process is running
 ```
 
 Four checks, four negative answers: no server, no screen socket, no working
-directory, no process left running. The socket file under `/tmp` may remain
+directory, no process left running. The same four are in the self-check
+script:
+
+```console
+$ bash episodes/code/self-check.sh cleanup
+PASS  no tmux server is running
+PASS  no screen session is left
+PASS  the working directory is gone
+PASS  no ticker process is left running
+
+All criteria met.
+```
+ The socket file under `/tmp` may remain
 after the server exits; it is an empty file that the next server reuses.
 
 The `tmux` and `screen` packages stay installed on purpose. A disposable

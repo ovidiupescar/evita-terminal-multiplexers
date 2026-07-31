@@ -389,6 +389,20 @@ Success criteria, all checked from a shell with no client attached:
 
 Do not use `nohup` or a background job. The point is the session.
 
+The first two criteria can be checked by the machine while the session is
+still detached:
+
+```console
+$ bash episodes/code/self-check.sh ex1
+PASS  a session named harvest exists
+      harvest.log has 3 lines, waiting five seconds
+      harvest.log has 7 lines now
+PASS  harvest.log grew while nothing was attached
+PASS  no client is attached
+
+All criteria met.
+```
+
 ::::{solution}
 :class: dropdown
 
