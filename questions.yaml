@@ -35,9 +35,10 @@ questions:
     delivery: [supervised, unsupervised]
     stem: >-
       A learner watches a growing log with "tail -f" inside a tmux session
-      called logs. They press Ctrl+B and then d. The shell prompt returns
-      and the line "[detached (from session logs)]" appears above it. What
-      is the state of the tail process at that moment?
+      called logs. They press Ctrl+B and then d. The shell prompt of the
+      machine returns, with a line above it reporting that the client
+      detached from session logs. What is the state of the tail process at
+      that moment?
     options:
       - "tail keeps running in the session, which the tmux server still holds, and the client that was drawing the session has disconnected"
       - "tail is stopped in the same way as after Ctrl+Z, and it resumes reading the log when the session is attached again"

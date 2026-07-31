@@ -1,0 +1,242 @@
+# Source ledger — SDS.OSV1-USE1.7. Every upstream claim was checked against
+# the manual page shipped on the pinned baseline (Ubuntu 24.04.1 LTS, tmux
+# 3.4, GNU Screen 4.9.1), and the quoted passage is harvested into
+# evidence/transcript-setup.txt under "SOURCE QUOTATIONS CHECKED AGAINST THE
+# SHIPPED MANUALS". The URLs point at the same documents online.
+sources:
+  - id: tmux-man-model
+    claim: >-
+      tmux(1) defines the session, server and client model this module
+      teaches: "tmux is a terminal multiplexer: it enables a number of
+      terminals to be created, accessed, and controlled from a single
+      screen. tmux may be detached from a screen and continue running in the
+      background, then later reattached." and "In tmux, a session is
+      displayed on screen by a client and all sessions are managed by a
+      single server. The server and each client are separate processes which
+      communicate through a socket in /tmp." The manual also states that a
+      session is a collection of pseudo terminals, that a window occupies
+      the whole screen and may be split into panes, and that "Once all
+      sessions are killed, tmux exits", which is the documented reason the
+      server disappears when the last session ends.
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man1/tmux.1.html"
+    source_type: upstream
+    version_scope: "tmux 3.4 as shipped in Ubuntu 24.04 (tmux 3.4-1ubuntu0.1)"
+    used_in: [content/episodes/use17-2-sessions.md, content/episodes/use17-3-windows-and-panes.md, content/reference-for-learners.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript-setup.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: tmux-man-persistence
+    claim: >-
+      tmux(1) states the persistence property the module is built on: "Each
+      session is persistent and will survive accidental disconnection (such
+      as ssh(1) connection timeout) or intentional detaching (with the
+      'C-b d' key strokes). tmux may be reattached using: $ tmux attach".
+      The manual scopes the guarantee to the connection, not to the machine,
+      which is why this module states that a reboot ends every session.
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man1/tmux.1.html"
+    source_type: upstream
+    version_scope: "tmux 3.4 as shipped in Ubuntu 24.04"
+    used_in: [content/episodes/use17-2-sessions.md, content/episodes/quiz/quiz.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript-setup.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: tmux-man-keys
+    claim: >-
+      tmux(1) documents the prefix mechanism and the bindings this module
+      uses: "tmux may be controlled from an attached client by using a key
+      combination of a prefix key, 'C-b' (Ctrl-b) by default, followed by a
+      command key", that the binding C-b "Send the prefix key (C-b) through
+      to the application", and that d detaches the current client. The same
+      table lists c (new window), comma (rename window), n and the digits
+      (select window), the percent sign and the double quote (split the
+      pane), o (select the next pane), q (display pane numbers), x (kill the
+      pane after a prompt) and the opening bracket (enter copy mode).
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man1/tmux.1.html"
+    source_type: upstream
+    version_scope: "tmux 3.4 as shipped in Ubuntu 24.04, default configuration"
+    used_in: [content/episodes/use17-2-sessions.md, content/episodes/use17-3-windows-and-panes.md, content/episodes/use17-4-editing-in-a-session.md, content/episodes/quiz/quiz.md, content/reference-for-learners.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript-setup.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: screen-man
+    claim: >-
+      screen(1) describes the same model in its own words: "Screen is a
+      full-screen window manager that multiplexes a physical terminal
+      between several processes (typically interactive shells). Each virtual
+      terminal provides the functions of a DEC VT100 terminal", and
+      documents -ls for listing sessions, -d -m for starting a session
+      detached, -r for reattaching and -X for sending a command to a running
+      session. The default command character of screen is Ctrl+A, which is
+      why the detach keystroke differs from tmux.
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man1/screen.1.html"
+    source_type: upstream
+    version_scope: "GNU Screen 4.09.01 as shipped in Ubuntu 24.04 (screen 4.9.1-1ubuntu1)"
+    used_in: [content/episodes/use17-3-windows-and-panes.md, content/reference-for-learners.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript-setup.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: signal-7-sighup
+    claim: >-
+      signal(7) defines SIGHUP as "Hangup detected on controlling terminal
+      or death of controlling process", with the default action Term. That
+      is the signal a process receives when the terminal it is attached to
+      goes away, and it is the mechanism the contrasting experiment in
+      Episode 2 reproduces by destroying the pseudo-terminal that script(1)
+      holds.
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man7/signal.7.html"
+    source_type: upstream
+    version_scope: "Linux man-pages as shipped in Ubuntu 24.04"
+    used_in: [content/episodes/use17-2-sessions.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: script-1
+    claim: >-
+      script(1) "makes a typescript of everything on your terminal session"
+      and runs the command under a newly allocated pseudo-terminal. The
+      module uses it only as a stand-in for the terminal an SSH connection
+      provides, so that the loss of that terminal can be shown in one
+      window; the learner-facing claim is about SIGHUP, not about script.
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man1/script.1.html"
+    source_type: upstream
+    version_scope: "util-linux script as shipped in Ubuntu 24.04"
+    used_in: [content/episodes/use17-2-sessions.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: nohup-1
+    claim: >-
+      nohup(1) runs a command "immune to hangups", which is the other way to
+      keep one command alive across a disconnection. Episode 2 names it once
+      to mark the boundary: nohup protects a single command and gives
+      nothing back at the next login, while a session can be reattached.
+    evidence_level: verified
+    url: "https://man7.org/linux/man-pages/man1/nohup.1.html"
+    source_type: upstream
+    version_scope: "GNU coreutils 9.4 as shipped in Ubuntu 24.04"
+    used_in: [content/episodes/use17-2-sessions.md, content/episodes/quiz/quiz.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: null
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: vim-recover
+    claim: >-
+      Vim's shipped documentation (recover.txt) states that Vim keeps a swap
+      file with the changes made to the buffer, that the swap file is
+      preserved when Vim is stopped by a hangup or a similar interruption,
+      and that "vim -r {file}" recovers the file from that swap file. The
+      module quotes the messages Vim prints during that recovery rather than
+      the documentation text.
+    evidence_level: verified
+    url: "https://vimhelp.org/recover.txt.html"
+    source_type: upstream
+    version_scope: "Vim 9.1 runtime documentation as shipped in Ubuntu 24.04 (/usr/share/vim/vim91/doc/recover.txt)"
+    used_in: [content/episodes/use17-4-editing-in-a-session.md, content/episodes/quiz/quiz.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: nano-man
+    claim: >-
+      nano(1) documents the help lines at the bottom of the screen, the
+      caret notation for control keystrokes, Write Out (^O) as the command
+      that writes the buffer to disk and Exit (^X) as the command that
+      leaves the editor. Episode 4 uses those two commands and teaches no
+      others; SDS.OSV1-USE1.6 covers the editor itself.
+    evidence_level: verified
+    url: "https://www.nano-editor.org/dist/latest/nano.1.html"
+    source_type: upstream
+    version_scope: "GNU nano 7.2 as shipped in Ubuntu 24.04"
+    used_in: [content/episodes/use17-4-editing-in-a-session.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: cluster-availability
+    claim: >-
+      The instructor guide and the HPC note say that a multiplexer is
+      normally available on an HPC login node, with screen the more common of
+      the two. No EuroHPC account was available while this module was
+      written, so that statement rests on the authors' experience of other
+      systems and is labelled as a working assumption in
+      content/authoring-evidence.md. Nothing in the module depends on it: the
+      whole module runs on the learner's own disposable machine.
+    evidence_level: working-assumption
+    url: "module.yaml#environments.hpc-cluster"
+    source_type: own-observation
+    version_scope: "not verified on any cluster during authoring"
+    used_in: [content/episodes/use17-2-sessions.md, content/instructor-guide.md, content/authoring-evidence.md]
+    verified:
+      date: 2026-07-31
+      by: null
+      fixture: null
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: own-transcript
+    claim: >-
+      Every screen, command and output reproduced in this module comes from
+      evidence/transcript.txt, harvested on the pinned baseline as an
+      ordinary user with the script evidence/harvest.sh. The 52 screens were
+      produced by running the learner's tmux session inside a second tmux
+      server whose pane is fixed at 80 columns by 24 rows, and capturing that
+      pane; the two servers use different socket names so that the sessions
+      listed inside a captured screen are only the ones the episode created.
+    evidence_level: verified
+    url: "evidence/transcript.txt"
+    source_type: own-observation
+    version_scope: "Ubuntu 24.04.1 LTS, tmux 3.4, GNU Screen 4.9.1, GNU nano 7.2, Vim 9.1, harvested 2026-07-31"
+    used_in: [content/episodes/use17-2-sessions.md, content/episodes/use17-3-windows-and-panes.md, content/episodes/use17-4-editing-in-a-session.md, content/episodes/quiz/quiz.md, content/authoring-evidence.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
+  - id: own-transcript-setup
+    claim: >-
+      The package installation shown in the setup episode was executed as
+      root on the pinned baseline with evidence/harvest-setup.sh and is
+      recorded in evidence/transcript-setup.txt, together with the package
+      versions that resulted. The pre-installed tmux was removed first, which
+      the script labels as authoring preparation rather than a learner step.
+    evidence_level: verified
+    url: "evidence/transcript-setup.txt"
+    source_type: own-observation
+    version_scope: "Ubuntu 24.04.1 LTS, harvested 2026-07-31"
+    used_in: [content/episodes/use17-1-setup.md, content/authoring-evidence.md]
+    verified:
+      date: 2026-07-31
+      by: technical-sme
+      fixture: evidence/transcript-setup.txt
+    last_verified: 2026-07-31
+    recheck_due: 2027-07-31
