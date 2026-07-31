@@ -1,0 +1,47 @@
+# Output normalization for SDS.OSV1-USE1.7.
+#
+# The rule this module follows: mask what identifies the authoring machine or
+# what changes on every run for reasons the learner cannot control, and leave
+# everything a learner can check for themselves. A mask hides evidence, so the
+# list is deliberately short and each entry says why it is there.
+#
+# NOT masked, on purpose:
+#   * session, window and pane names (demo, layout, edit, pair, notes) - the
+#     learner chooses them and the episodes tell them which to use;
+#   * tick counters in ticker output and the line counts taken from them -
+#     they are the evidence that a detached session kept running;
+#   * pane geometry (80x24), window and pane indexes, the [x/y] copy-mode
+#     counter - they are reproducible for a learner who follows the setup;
+#   * md5 checksums of the fixture files - the whole point of the checks in
+#     Episode 4 is that they are reproducible;
+#   * the socket directory name /tmp/tmux-1000 keeps the numeric uid, because
+#     a learner has to recognise their own uid in that path; only the user
+#     and host names inside the prompt are masked.
+masks:
+  - pattern: '\bovidiu\b'
+    replace: 'trainee'
+    reason: 'the account name on the authoring machine; the module needs an ordinary account, not this one'
+  - pattern: '\bfendows\b'
+    replace: 'trainvm'
+    reason: 'the host name of the authoring machine, which appears in the shell prompt and in the tmux status line'
+  - pattern: '/home/ovidiu\b'
+    replace: '/home/trainee'
+    reason: 'the home directory of the authoring account, printed by pwd, wc -l and nohup output'
+  - pattern: '/run/screen/S-ovidiu\b'
+    replace: '/run/screen/S-trainee'
+    reason: 'the per-user screen socket directory carries the account name'
+  - pattern: '\b(\d+)\.jobs\b'
+    replace: '<pid>.jobs'
+    reason: 'GNU Screen names its socket after the process id of the session, which differs on every run'
+  - pattern: '\bpid \d+\b'
+    replace: 'pid <pid>'
+    reason: 'process ids printed by the harvest itself'
+  - pattern: '\b\d{2}:\d{2}:\d{2}\b'
+    replace: '<time>'
+    reason: 'clock times in the tmux status line and in date output; the ticker timestamps inside a quoted screen are left alone because they show the seconds passing'
+  - pattern: '\b[A-Z][a-z]{2} [A-Z][a-z]{2} +\d+ \d\d:\d\d:\d\d \d{4}\b'
+    replace: '<timestamp>'
+    reason: 'the creation time tmux prints in tmux ls'
+  - pattern: '\b\d\d/\d\d/\d\d \d\d:\d\d:\d\d\b'
+    replace: '<timestamp>'
+    reason: 'the creation time screen prints in screen -ls'

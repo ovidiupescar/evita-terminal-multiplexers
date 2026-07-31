@@ -1,0 +1,204 @@
+
+===== BASELINE IDENTITY =====
+
+$ cat /etc/os-release | head -3
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+[exit 0]
+$ uname -r
+5.15.153.1-microsoft-standard-WSL2
+[exit 0]
+$ id
+uid=0(root) gid=0(root) groups=0(root)
+[exit 0]
+
+===== AUTHORING PREPARATION: remove the pre-installed tmux =====
+
+$ apt-get remove -y tmux
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following packages were automatically installed and are no longer required:
+  libevent-core-2.1-7t64 pastebinit python3-newt run-one
+Use 'apt autoremove' to remove them.
+The following packages will be REMOVED:
+  byobu tmux ubuntu-wsl
+0 upgraded, 0 newly installed, 3 to remove and 134 not upgraded.
+After this operation, 1779 kB disk space will be freed.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 53662 files and directories currently installed.)
+Removing ubuntu-wsl (1.539.2) ...
+Removing byobu (6.11-0ubuntu1) ...
+Removing tmux (3.4-1ubuntu0.1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for debianutils (5.17build1) ...
+Processing triggers for hicolor-icon-theme (0.17-2) ...
+[exit 0]
+$ command -v tmux || echo "tmux: not on PATH"
+tmux: not on PATH
+[exit 0]
+
+===== STATE BEFORE THE LEARNER STEP =====
+
+$ command -v tmux screen || echo "neither tmux nor screen is installed"
+/usr/bin/screen
+[exit 0]
+$ apt-cache policy tmux | head -3
+tmux:
+  Installed: (none)
+  Candidate: 3.4-1ubuntu0.1
+[exit 0]
+$ apt-cache policy screen | head -3
+screen:
+  Installed: 4.9.1-1ubuntu1
+  Candidate: 4.9.1-1ubuntu1
+[exit 0]
+
+===== LEARNER STEP 1: refresh the package index =====
+
+$ apt-get update
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Reading package lists...
+[exit 0]
+
+===== LEARNER STEP 2: install the two multiplexers =====
+
+$ apt-get install -y tmux screen
+Reading package lists...
+Building dependency tree...
+Reading state information...
+screen is already the newest version (4.9.1-1ubuntu1).
+The following packages were automatically installed and are no longer required:
+  pastebinit python3-newt run-one
+Use 'apt autoremove' to remove them.
+The following NEW packages will be installed:
+  tmux
+0 upgraded, 1 newly installed, 0 to remove and 134 not upgraded.
+Need to get 0 B/480 kB of archives.
+After this operation, 1188 kB of additional disk space will be used.
+Selecting previously unselected package tmux.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 53458 files and directories currently installed.)
+Preparing to unpack .../tmux_3.4-1ubuntu0.1_amd64.deb ...
+Unpacking tmux (3.4-1ubuntu0.1) ...
+Setting up tmux (3.4-1ubuntu0.1) ...
+Processing triggers for debianutils (5.17build1) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+[exit 0]
+
+===== LEARNER STEP 3: verify the installation =====
+
+$ tmux -V
+tmux 3.4
+[exit 0]
+$ screen --version
+Screen version 4.09.01 (GNU) 20-Aug-23
+[exit 0]
+$ command -v tmux screen
+/usr/bin/tmux
+/usr/bin/screen
+[exit 0]
+
+===== RESTORE ANYTHING THE REMOVAL PULLED OUT =====
+
+$ apt-get install -y ubuntu-wsl
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  byobu
+Suggested packages:
+  ccze gnome-terminal | xterm po-debconf speedometer ttf-ubuntu-font-family
+  update-notifier-common wireless-tools
+The following NEW packages will be installed:
+  byobu ubuntu-wsl
+Preconfiguring packages ...
+0 upgraded, 2 newly installed, 0 to remove and 134 not upgraded.
+Need to get 0 B/114 kB of archives.
+After this operation, 591 kB of additional disk space will be used.
+Selecting previously unselected package byobu.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 53468 files and directories currently installed.)
+Preparing to unpack .../byobu_6.11-0ubuntu1_all.deb ...
+Unpacking byobu (6.11-0ubuntu1) ...
+Selecting previously unselected package ubuntu-wsl.
+Preparing to unpack .../ubuntu-wsl_1.539.2_amd64.deb ...
+Unpacking ubuntu-wsl (1.539.2) ...
+Setting up byobu (6.11-0ubuntu1) ...
+Setting up ubuntu-wsl (1.539.2) ...
+Processing triggers for hicolor-icon-theme (0.17-2) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+[exit 0]
+$ dpkg -l tmux screen | tail -3
++++-==============-==============-============-=======================================================
+ii  screen         4.9.1-1ubuntu1 amd64        terminal multiplexer with VT100/ANSI terminal emulation
+ii  tmux           3.4-1ubuntu0.1 amd64        terminal multiplexer
+[exit 0]
+
+===== MANUAL PAGES SHIPPED WITH THE PACKAGES =====
+
+$ ls -l /usr/share/man/man1/tmux.1.gz /usr/share/man/man1/screen.1.gz
+-rw-r--r-- 1 root root 56178 Jan 22  2026 /usr/share/man/man1/screen.1.gz
+-rw-r--r-- 1 root root 48421 Jul 11  2024 /usr/share/man/man1/tmux.1.gz
+[exit 0]
+
+===== SOURCE QUOTATIONS CHECKED AGAINST THE SHIPPED MANUALS =====
+
+$ MANWIDTH=78 man tmux 2>/dev/null | col -bx | grep -n -m1 -A3 "is a terminal multiplexer"
+11:       tmux is a terminal multiplexer: it enables a number of  terminals  to
+12-       be  created, accessed, and controlled from a single screen.  tmux may
+13-       be detached from a screen and continue  running  in  the  background,
+14-       then later reattached.
+[exit 0]
+$ MANWIDTH=78 man tmux 2>/dev/null | col -bx | grep -n -m1 -A2 "Each session is persistent"
+30:       Each session is persistent and will survive accidental  disconnection
+31-       (such  as  ssh(1)  connection timeout) or intentional detaching (with
+32-       the ‘C-b d’ key strokes).  tmux may be reattached using:
+[exit 0]
+$ MANWIDTH=78 man tmux 2>/dev/null | col -bx | grep -n -m1 -A2 "a session is displayed on screen"
+36:       In tmux, a session is displayed on screen by a client  and  all  ses‐
+37-       sions are managed by a single server.  The server and each client are
+38-       separate processes which communicate through a socket in /tmp.
+[exit 0]
+$ MANWIDTH=78 man tmux 2>/dev/null | col -bx | grep -n -m1 -A1 "Once all sessions are"
+27:       of windows may be present in the same session.  Once all sessions are
+28-       killed, tmux exits.
+[exit 0]
+$ MANWIDTH=78 man tmux 2>/dev/null | col -bx | sed -n "129,137p"
+DEFAULT KEY BINDINGS
+       tmux  may be controlled from an attached client by using a key combi‐
+       nation of a prefix key, ‘C-b’ (Ctrl-b) by default, followed by a com‐
+       mand key.
+
+       The default command key bindings are:
+
+             C-b         Send the prefix key (C-b) through to  the  applica‐
+                         tion.
+[exit 0]
+$ MANWIDTH=78 man tmux 2>/dev/null | col -bx | grep -n -m1 -A2 "^ *d *Detach"
+164:             d           Detach the current client.
+165-             f           Prompt to search for text in open windows.
+166-             i           Display some information about the current window.
+[exit 0]
+$ MANWIDTH=78 man screen 2>/dev/null | col -bx | grep -n -m1 -A5 "full-screen window manager"
+12:       Screen  is  a  full-screen window manager that multiplexes a physical
+13-       terminal between several processes  (typically  interactive  shells).
+14-       Each  virtual terminal provides the functions of a DEC VT100 terminal
+15-       and, in addition, several control functions from the ISO  6429  (ECMA
+16-       48,  ANSI  X3.64) and ISO 2022 standards (e.g. insert/delete line and
+17-       support for multiple character sets).  There is a scrollback  history
+[exit 0]
+$ MANWIDTH=78 man screen 2>/dev/null | col -bx | grep -n -m1 -A4 "detach.*screen session"
+260:            multiple detached screen sessions.  The second form is  used  to
+261-            connect to another user's screen session which runs in multiuser
+262-            mode. This indicates that screen should look for sessions in an‐
+263-            other user's directory. This requires setuid-root.
+264-
+[exit 0]
+
+===== HARVEST COMPLETE =====
+
+$ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-07-31T06:48:30Z
+[exit 0]

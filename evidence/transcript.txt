@@ -1,0 +1,1877 @@
+
+===== PART 0 - BASELINE =====
+
+$ cat /etc/os-release | head -1
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+[exit 0]
+$ uname -r
+5.15.153.1-microsoft-standard-WSL2
+[exit 0]
+$ id -un; id -u
+ovidiu
+1000
+[exit 0]
+$ tmux -V
+tmux 3.4
+[exit 0]
+$ screen --version
+Screen version 4.09.01 (GNU) 20-Aug-23
+[exit 0]
+$ ls -l ~/.tmux.conf /etc/tmux.conf 2>&1 | sed -e "s/^/  /"
+  ls: cannot access '/home/ovidiu/.tmux.conf': No such file or directory
+  ls: cannot access '/etc/tmux.conf': No such file or directory
+[exit 0]
+$ tmux -f /dev/null start-server \; show-options -g prefix \; show-options -g default-terminal \; show-options -g status \; kill-server
+prefix C-b
+default-terminal tmux-256color
+status on
+[exit 0]
+$ mkdir -p ~/use17 && cd ~/use17 && pwd
+/home/ovidiu/use17
+[exit 0]
+
+===== PART 1 - WHY A MULTIPLEXER: A COMMAND THAT OUTLIVES ITS TERMINAL =====
+
+--- the fixture: a command that keeps writing until it is stopped ---
+$ cat ticker.sh
+#!/bin/bash
+# prints one line per second until it is stopped
+i=0
+while true; do
+  i=$((i+1))
+  printf "%s tick %d\n" "$(date +%H:%M:%S)" "$i"
+  sleep 1
+done
+[exit 0]
+$ ls -l ticker.sh
+-rwxr-xr-x 1 ovidiu ovidiu 157 Jul 31 10:04 ticker.sh
+[exit 0]
+
+--- CASE A: the command runs on a pseudo-terminal that is then destroyed.
+--- script(1) holds the pseudo-terminal, which stands in for the terminal
+--- an SSH connection provides. Destroying it delivers the same SIGHUP a
+--- dropped connection delivers.
+$ setsid script -q -c "$HOME/use17/ticker.sh > $HOME/use17/plain.log 2>&1" /dev/null < /dev/null > /dev/null 2>&1 & echo "harness pid $!" > "$HOME/.use17-apid"; sleep 4; cat "$HOME/.use17-apid"
+harness pid 312
+[exit 0]
+$ pstree -p 312
+script(312)---bash(314)---ticker.sh(315)---sleep(369)
+[exit 0]
+$ cat plain.log; echo "-- $(wc -l < plain.log) lines"
+10:04:05 tick 1
+10:04:06 tick 2
+10:04:07 tick 3
+10:04:08 tick 4
+-- 4 lines
+[exit 0]
+$ kill 312
+[exit 0]
+$ sleep 3; cat plain.log; echo "-- $(wc -l < plain.log) lines"
+10:04:05 tick 1
+10:04:06 tick 2
+10:04:07 tick 3
+10:04:08 tick 4
+10:04:09 tick 5
+-- 5 lines
+[exit 0]
+$ pgrep -af ticker.sh || echo "no ticker.sh process is running"
+no ticker.sh process is running
+[exit 0]
+
+--- CASE B: the same command inside a tmux session with no client attached.
+$ tmux kill-server 2>/dev/null; tmux new-session -d -s work -x 80 -y 24 -c "$HOME/use17" "$HOME/use17/ticker.sh > $HOME/use17/tmux.log 2>&1"; sleep 4; cat tmux.log; echo "-- $(wc -l < tmux.log) lines"
+10:04:12 tick 1
+10:04:13 tick 2
+10:04:14 tick 3
+10:04:15 tick 4
+10:04:16 tick 5
+-- 5 lines
+[exit 0]
+$ tmux ls
+work: 1 windows (created Fri Jul 31 10:04:12 2026)
+[exit 0]
+$ pgrep -af "bash .*ticker.sh"
+393 bash -c /home/ovidiu/use17/ticker.sh > /home/ovidiu/use17/tmux.log 2>&1
+395 /bin/bash /home/ovidiu/use17/ticker.sh
+[exit 0]
+$ sleep 4; cat tmux.log; echo "-- $(wc -l < tmux.log) lines"
+10:04:12 tick 1
+10:04:13 tick 2
+10:04:14 tick 3
+10:04:15 tick 4
+10:04:16 tick 5
+10:04:17 tick 6
+10:04:18 tick 7
+10:04:19 tick 8
+10:04:20 tick 9
+-- 9 lines
+[exit 0]
+$ tmux kill-session -t work; sleep 1; pgrep -af ticker.sh || echo "no ticker.sh process is running"
+no ticker.sh process is running
+[exit 0]
+
+===== PART 2 - THE MODEL: SERVER, SESSION, CLIENT =====
+
+$ tmux kill-server 2>/dev/null; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ tmux new-session -d -s demo -x 80 -y 24 -c "$HOME/use17"
+[exit 0]
+$ tmux ls
+demo: 1 windows (created Fri Jul 31 10:04:21 2026)
+[exit 0]
+$ ls -l /tmp/tmux-$(id -u)/
+total 0
+srw-rw---- 1 ovidiu ovidiu 0 Jul 31 10:04 default
+[exit 0]
+$ pgrep -a tmux
+445 tmux new-session -d -s demo -x 80 -y 24 -c /home/ovidiu/use17
+[exit 0]
+$ tmux display -p -t demo "server pid #{pid}, session #{session_name}, pane pid #{pane_pid}"
+server pid 445, session demo, pane pid 446
+[exit 0]
+$ pstree -p $(tmux display -p -t demo "#{pid}")
+tmux: server(445)---bash(446)
+[exit 0]
+$ COLUMNS=100 LINES=40 ps -o pid,ppid,tty,stat,comm,args -p $(tmux display -p -t demo "#{pid}")
+    PID    PPID TT       STAT COMMAND         COMMAND
+    445     261 ?        Ss   tmux: server    tmux new-session -d -s demo -x 80 -y 24 -c /home/ovidi
+[exit 0]
+$ COLUMNS=100 LINES=40 ps -o pid,ppid,tty,stat,comm,args -p $(tmux display -p -t demo "#{pane_pid}")
+    PID    PPID TT       STAT COMMAND         COMMAND
+    446     445 pts/2    Rs+  bash            -bash
+[exit 0]
+$ tmux list-windows -t demo
+0: bash* (1 panes) [80x24] [layout b25d,80x24,0,0,0] @0 (active)
+[exit 0]
+$ tmux list-panes -t demo
+0: [80x24] [history 0/2000, 960 bytes] %0 (active)
+[exit 0]
+$ tmux display -p -t demo "#{session_name} #{window_width}x#{window_height} #{pane_pid}"
+demo 80x24 446
+[exit 0]
+$ tmux attach -t nosuch
+can't find session: nosuch
+[exit 1]
+$ tmux kill-server; sleep 1; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ ls -l /tmp/tmux-$(id -u)/ 2>&1
+total 0
+srw-rw---- 1 ovidiu ovidiu 0 Jul 31 10:04 default
+[exit 0]
+
+===== PART 3 - SCREENS: THE SESSION LIFECYCLE (EPISODE 2) =====
+
+$ tmux -L harvest -f /dev/null display -p -t cap '#{pane_width}x#{pane_height}'
+80x24
+[exit 0]
+
+----- SCREEN E2-01: the shell in the working directory, before any multiplexer is started -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-01 -----
+
+
+----- SCREEN E2-02: a new session called demo: the status line names it -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[demo] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-02 -----
+
+
+----- SCREEN E2-03: the ticker running inside the session -----
+ovidiu@fendows:~/use17$ ./ticker.sh
+10:04:26 tick 1
+10:04:27 tick 2
+10:04:28 tick 3
+10:04:29 tick 4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[demo] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-03 -----
+
+
+----- SCREEN E2-04: after Ctrl+B d: the client has detached and the shell is back -----
+ovidiu@fendows:~/use17$ tmux new -s demo
+[detached (from session demo)]
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-04 -----
+
+
+----- SCREEN E2-05: tmux ls lists the session that is still there -----
+ovidiu@fendows:~/use17$ tmux new -s demo
+[detached (from session demo)]
+ovidiu@fendows:~/use17$ tmux ls
+demo: 1 windows (created Fri Jul 31 10:04:24 2026)
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-05 -----
+
+
+----- SCREEN E2-06: after tmux attach: the tick numbers advanced while nobody was attached -----
+ovidiu@fendows:~/use17$ ./ticker.sh
+10:04:26 tick 1
+10:04:27 tick 2
+10:04:28 tick 3
+10:04:29 tick 4
+10:04:30 tick 5
+10:04:31 tick 6
+10:04:32 tick 7
+10:04:33 tick 8
+10:04:34 tick 9
+10:04:35 tick 10
+10:04:36 tick 11
+10:04:37 tick 12
+10:04:38 tick 13
+10:04:39 tick 14
+10:04:40 tick 15
+
+
+
+
+
+
+
+[demo] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-06 -----
+
+
+----- SCREEN E2-07: starting tmux inside a session is refused -----
+ovidiu@fendows:~/use17$ ./ticker.sh
+10:04:26 tick 1
+10:04:27 tick 2
+10:04:28 tick 3
+10:04:29 tick 4
+10:04:30 tick 5
+10:04:31 tick 6
+10:04:32 tick 7
+10:04:33 tick 8
+10:04:34 tick 9
+10:04:35 tick 10
+10:04:36 tick 11
+10:04:37 tick 12
+10:04:38 tick 13
+10:04:39 tick 14
+10:04:40 tick 15
+^C
+ovidiu@fendows:~/use17$ tmux
+sessions should be nested with care, unset $TMUX to force
+ovidiu@fendows:~/use17$
+
+
+
+[demo] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-07 -----
+
+
+----- SCREEN E2-08: exit in the last pane ends the session -----
+ovidiu@fendows:~/use17$ tmux new -s demo
+[detached (from session demo)]
+ovidiu@fendows:~/use17$ tmux ls
+demo: 1 windows (created Fri Jul 31 10:04:24 2026)
+ovidiu@fendows:~/use17$ tmux attach -t demo
+[exited]
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-08 -----
+
+
+----- SCREEN E2-09: with the session gone, no server is running -----
+ovidiu@fendows:~/use17$ tmux new -s demo
+[detached (from session demo)]
+ovidiu@fendows:~/use17$ tmux ls
+demo: 1 windows (created Fri Jul 31 10:04:24 2026)
+ovidiu@fendows:~/use17$ tmux attach -t demo
+[exited]
+ovidiu@fendows:~/use17$ tmux ls
+no server running on /tmp/tmux-1000/default
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-09 -----
+
+
+----- SCREEN E2-10: attaching a session that no longer exists -----
+ovidiu@fendows:~/use17$ tmux new -s demo
+[detached (from session demo)]
+ovidiu@fendows:~/use17$ tmux ls
+demo: 1 windows (created Fri Jul 31 10:04:24 2026)
+ovidiu@fendows:~/use17$ tmux attach -t demo
+[exited]
+ovidiu@fendows:~/use17$ tmux ls
+no server running on /tmp/tmux-1000/default
+ovidiu@fendows:~/use17$ tmux attach -t demo
+no sessions
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-10 -----
+
+--- two clients drawing one session at the same time ---
+$ tmux kill-server 2>/dev/null; tmux new-session -d -s pair -x 80 -y 24 -c "$HOME/use17"; tmux ls
+pair: 1 windows (created Fri Jul 31 10:04:48 2026)
+[exit 0]
+$ tmux list-clients -t pair
+/dev/pts/2: pair [80x24 tmux-256color] (attached,focused,UTF-8)
+[exit 0]
+$ tmux list-clients -F "#{client_tty} #{client_width}x#{client_height} #{client_session}"
+/dev/pts/2 80x24 pair
+/dev/pts/4 80x24 pair
+[exit 0]
+
+----- SCREEN E2-11: the second client, where the command was typed -----
+ovidiu@fendows:~/use17$ echo this line was typed in the second client
+this line was typed in the second client
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[pair] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-11 -----
+
+
+----- SCREEN E2-12: the first client, drawing the same session at the same time -----
+ovidiu@fendows:~/use17$ echo this line was typed in the second client
+this line was typed in the second client
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[pair] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-12 -----
+
+
+----- SCREEN E2-13: the first client after the second one detached -----
+ovidiu@fendows:~/use17$ echo this line was typed in the second client
+this line was typed in the second client
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[pair] 0:bash*                                         "fendows" 10:04 31-Jul-26
+----- END SCREEN E2-13 -----
+
+
+----- SCREEN E2-14: the session ends when it is killed, not when a client leaves -----
+ovidiu@fendows:~/use17$ tmux attach -t pair
+[server exited]
+ovidiu@fendows:~/use17$ tmux ls
+no server running on /tmp/tmux-1000/default
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E2-14 -----
+
+
+===== PART 4 - SCREENS: WINDOWS AND PANES (EPISODE 3) =====
+
+$ nohup ./ticker.sh > ~/use17/build.log 2>&1 & echo "background writer pid $!" > "$HOME/.use17-bpid"; sleep 2; cat "$HOME/.use17-bpid"
+background writer pid 719
+[exit 0]
+
+----- SCREEN E3-01: a session with one window and one pane -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[layout] 0:bash*                                       "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-01 -----
+
+
+----- SCREEN E3-02: Ctrl+B % splits the window into two panes side by side -----
+ovidiu@fendows:~/use17$                 │ovidiu@fendows:~/use17$
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[layout] 0:bash*                                       "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-02 -----
+
+
+----- SCREEN E3-03: the right pane follows the log while the left pane stays free -----
+ovidiu@fendows:~/use17$                 │ovidiu@fendows:~/use17$ tail -f ~/use17
+                                        │/build.log
+                                        │10:05:02 tick 1
+                                        │10:05:03 tick 2
+                                        │10:05:04 tick 3
+                                        │10:05:05 tick 4
+                                        │10:05:06 tick 5
+                                        │10:05:07 tick 6
+                                        │10:05:08 tick 7
+                                        │10:05:09 tick 8
+                                        │10:05:10 tick 9
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[layout] 0:tail*                                       "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-03 -----
+
+
+----- SCREEN E3-04: Ctrl+B o moves to the other pane, which still has a prompt -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│ovidiu@fendows:~/use17$ tail -f ~/use17
+ild.log                                 │/build.log
+11 /home/ovidiu/use17/build.log         │10:05:02 tick 1
+ovidiu@fendows:~/use17$                 │10:05:03 tick 2
+                                        │10:05:04 tick 3
+                                        │10:05:05 tick 4
+                                        │10:05:06 tick 5
+                                        │10:05:07 tick 6
+                                        │10:05:08 tick 7
+                                        │10:05:09 tick 8
+                                        │10:05:10 tick 9
+                                        │10:05:11 tick 10
+                                        │10:05:12 tick 11
+                                        │10:05:13 tick 12
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[layout] 0:bash*                                       "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-04 -----
+
+
+----- SCREEN E3-05: Ctrl+B " splits the current pane top and bottom -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│ovidiu@fendows:~/use17$ tail -f ~/use17
+ild.log                                 │/build.log
+11 /home/ovidiu/use17/build.log         │10:05:02 tick 1
+ovidiu@fendows:~/use17$                 │10:05:03 tick 2
+                                        │10:05:04 tick 3
+                                        │10:05:05 tick 4
+                                        │10:05:06 tick 5
+                                        │10:05:07 tick 6
+                                        │10:05:08 tick 7
+                                        │10:05:09 tick 8
+                                        │10:05:10 tick 9
+────────────────────────────────────────┤10:05:11 tick 10
+ovidiu@fendows:~/use17$ date; uptime    │10:05:12 tick 11
+Fri Jul 31 10:05:15 EEST 2026           │10:05:13 tick 12
+ 10:05:15 up 1 min,  1 user,  load avera│10:05:14 tick 13
+ge: 0.03, 0.01, 0.00                    │10:05:15 tick 14
+ovidiu@fendows:~/use17$                 │10:05:16 tick 15
+                                        │10:05:17 tick 16
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[layout] 0:bash*                                       "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-05 -----
+
+
+----- SCREEN E3-06: Ctrl+B q shows the number of each pane -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│ovidiu@fendows:~/use17$ tail -f ~/use17
+ild.log                                 │/build.log
+11 /home/ovidiu/use17/build.log         │10:05:02 tick 1
+ovidiu@fendows:~/use17$                 │10:05:03 tick 2
+                                        │10:05:04 tick 3
+                                        │10:05:05 tick 4
+                                        │10:05:06 tick 5
+                                        │10:05:07 tick 6
+                                        │10:05:08 tick 7
+                                        │10:05:09 tick 8
+                                        │10:05:10 tick 9
+────────────────────────────────────────┤10:05:11 tick 10
+ovidiu@fendows:~/use17$ date; uptime    │10:05:12 tick 11
+Fri Jul 31 10:05:15 EEST 2026           │10:05:13 tick 12
+ 10:05:15 up 1 min,  1 user,  load avera│10:05:14 tick 13
+ge: 0.03, 0.01, 0.00                    │10:05:15 tick 14
+ovidiu@fendows:~/use17$                 │10:05:16 tick 15
+                                        │10:05:17 tick 16
+                                        │10:05:18 tick 17
+                                        │10:05:19 tick 18
+                                        │
+                                        │
+                                        │
+[layout] 0:bash*                                       "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-06 -----
+
+
+----- SCREEN E3-07: Ctrl+B c opens a second window; the status line lists both -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[layout] 0:bash- 1:bash*                               "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-07 -----
+
+
+----- SCREEN E3-08: Ctrl+B , offers the current name for editing -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(rename-window) bash
+----- END SCREEN E3-08 -----
+
+
+----- SCREEN E3-08b: Ctrl+U clears the offered name before the new one is typed -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[layout] 0:bash- 1:notes*                              "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-08b -----
+
+
+----- SCREEN E3-09: Ctrl+B n moves to the next window -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│10:05:06 tick 5
+ild.log                                 │10:05:07 tick 6
+11 /home/ovidiu/use17/build.log         │10:05:08 tick 7
+ovidiu@fendows:~/use17$                 │10:05:09 tick 8
+                                        │10:05:10 tick 9
+                                        │10:05:11 tick 10
+                                        │10:05:12 tick 11
+                                        │10:05:13 tick 12
+                                        │10:05:14 tick 13
+                                        │10:05:15 tick 14
+                                        │10:05:16 tick 15
+────────────────────────────────────────┤10:05:17 tick 16
+ovidiu@fendows:~/use17$ date; uptime    │10:05:18 tick 17
+Fri Jul 31 10:05:15 EEST 2026           │10:05:19 tick 18
+ 10:05:15 up 1 min,  1 user,  load avera│10:05:20 tick 19
+ge: 0.03, 0.01, 0.00                    │10:05:21 tick 20
+ovidiu@fendows:~/use17$                 │10:05:22 tick 21
+                                        │10:05:23 tick 22
+                                        │10:05:24 tick 23
+                                        │10:05:25 tick 24
+                                        │10:05:26 tick 25
+                                        │10:05:27 tick 26
+                                        │
+[layout] 0:bash* 1:notes-                              "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-09 -----
+
+
+----- SCREEN E3-10: Ctrl+B [ enters copy mode; the indicator counts the lines above -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│10:05:10 tick 9
+ild.log                                 │10:05:11 tick 10
+11 /home/ovidiu/use17/build.log         │10:05:12 tick 11
+ovidiu@fendows:~/use17$                 │10:05:13 tick 12
+                                        │10:05:14 tick 13
+                                        │10:05:15 tick 14
+                                        │10:05:16 tick 15
+                                        │10:05:17 tick 16
+                                        │10:05:18 tick 17
+                                        │10:05:19 tick 18
+                                        │10:05:20 tick 19
+────────────────────────────────────────┤10:05:21 tick 20
+42                       10:05:27 [9/55]│10:05:22 tick 21
+43                                      │10:05:23 tick 22
+44                                      │10:05:24 tick 23
+45                                      │10:05:25 tick 24
+46                                      │10:05:26 tick 25
+47                                      │10:05:27 tick 26
+48                                      │10:05:28 tick 27
+49                                      │10:05:29 tick 28
+50                                      │10:05:30 tick 29
+51                                      │10:05:31 tick 30
+52                                      │
+[layout] 0:[tmux]* 1:notes-                            "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-10 -----
+
+
+----- SCREEN E3-11: q leaves copy mode -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│10:05:11 tick 10
+ild.log                                 │10:05:12 tick 11
+11 /home/ovidiu/use17/build.log         │10:05:13 tick 12
+ovidiu@fendows:~/use17$                 │10:05:14 tick 13
+                                        │10:05:15 tick 14
+                                        │10:05:16 tick 15
+                                        │10:05:17 tick 16
+                                        │10:05:18 tick 17
+                                        │10:05:19 tick 18
+                                        │10:05:20 tick 19
+                                        │10:05:21 tick 20
+────────────────────────────────────────┤10:05:22 tick 21
+51                                      │10:05:23 tick 22
+52                                      │10:05:24 tick 23
+53                                      │10:05:25 tick 24
+54                                      │10:05:26 tick 25
+55                                      │10:05:27 tick 26
+56                                      │10:05:28 tick 27
+57                                      │10:05:29 tick 28
+58                                      │10:05:30 tick 29
+59                                      │10:05:31 tick 30
+60                                      │10:05:32 tick 31
+ovidiu@fendows:~/use17$                 │
+[layout] 0:bash* 1:notes-                              "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-11 -----
+
+
+----- SCREEN E3-12: Ctrl+B x asks before it kills the pane -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│10:05:12 tick 11
+ild.log                                 │10:05:13 tick 12
+11 /home/ovidiu/use17/build.log         │10:05:14 tick 13
+ovidiu@fendows:~/use17$                 │10:05:15 tick 14
+                                        │10:05:16 tick 15
+                                        │10:05:17 tick 16
+                                        │10:05:18 tick 17
+                                        │10:05:19 tick 18
+                                        │10:05:20 tick 19
+                                        │10:05:21 tick 20
+                                        │10:05:22 tick 21
+────────────────────────────────────────┤10:05:23 tick 22
+51                                      │10:05:24 tick 23
+52                                      │10:05:25 tick 24
+53                                      │10:05:26 tick 25
+54                                      │10:05:27 tick 26
+55                                      │10:05:28 tick 27
+56                                      │10:05:29 tick 28
+57                                      │10:05:30 tick 29
+58                                      │10:05:31 tick 30
+59                                      │10:05:32 tick 31
+60                                      │10:05:33 tick 32
+ovidiu@fendows:~/use17$                 │
+kill-pane 1? (y/n)
+----- END SCREEN E3-12 -----
+
+
+----- SCREEN E3-13: the pane is gone and the remaining pane fills the window -----
+ovidiu@fendows:~/use17$ wc -l ~/use17/bu│10:05:14 tick 13
+ild.log                                 │10:05:15 tick 14
+11 /home/ovidiu/use17/build.log         │10:05:16 tick 15
+ovidiu@fendows:~/use17$                 │10:05:17 tick 16
+                                        │10:05:18 tick 17
+                                        │10:05:19 tick 18
+                                        │10:05:20 tick 19
+                                        │10:05:21 tick 20
+                                        │10:05:22 tick 21
+                                        │10:05:23 tick 22
+                                        │10:05:24 tick 23
+                                        │10:05:25 tick 24
+                                        │10:05:26 tick 25
+                                        │10:05:27 tick 26
+                                        │10:05:28 tick 27
+                                        │10:05:29 tick 28
+                                        │10:05:30 tick 29
+                                        │10:05:31 tick 30
+                                        │10:05:32 tick 31
+                                        │10:05:33 tick 32
+                                        │10:05:34 tick 33
+                                        │10:05:35 tick 34
+                                        │
+[layout] 0:bash* 1:notes-                              "fendows" 10:05 31-Jul-26
+----- END SCREEN E3-13 -----
+
+
+----- SCREEN E3-14: the session with its two windows is still there after detaching -----
+ovidiu@fendows:~/use17$ tmux new -s layout
+[detached (from session layout)]
+ovidiu@fendows:~/use17$ tmux ls
+layout: 2 windows (created Fri Jul 31 10:05:04 2026)
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-14 -----
+
+
+----- SCREEN E3-15: killing the session by name ends it -----
+ovidiu@fendows:~/use17$ tmux new -s layout
+[detached (from session layout)]
+ovidiu@fendows:~/use17$ tmux ls
+layout: 2 windows (created Fri Jul 31 10:05:04 2026)
+ovidiu@fendows:~/use17$ tmux kill-session -t layout; tmux ls
+no server running on /tmp/tmux-1000/default
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-15 -----
+
+$ kill 719 2>/dev/null; sleep 1; pgrep -af 'bash .*ticker.sh' || echo 'no ticker.sh process is running'
+no ticker.sh process is running
+[exit 0]
+
+===== PART 5 - THE SAME MODEL IN GNU SCREEN (EPISODE 3) =====
+
+$ screen -ls
+No Sockets found in /run/screen/S-ovidiu.
+
+[exit 1]
+$ screen -dmS jobs bash
+[exit 0]
+$ screen -ls
+There is a screen on:
+	989.jobs	(07/31/26 10:05:41)	(Detached)
+1 Socket in /run/screen/S-ovidiu.
+[exit 0]
+$ ls -l /run/screen/S-$(id -un)/
+total 0
+srw------- 1 ovidiu ovidiu 0 Jul 31 10:05 989.jobs
+[exit 0]
+
+----- SCREEN E3-16: a screen session has no status line by default -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-16 -----
+
+
+----- SCREEN E3-17: a command in the screen session -----
+ovidiu@fendows:~/use17$ echo this shell runs inside screen
+this shell runs inside screen
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-17 -----
+
+
+----- SCREEN E3-18: Ctrl+A d detaches a screen session -----
+ovidiu@fendows:~/use17$ screen -r jobs
+[detached from 989.jobs]
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-18 -----
+
+
+----- SCREEN E3-19: screen -ls lists the detached session -----
+ovidiu@fendows:~/use17$ screen -r jobs
+[detached from 989.jobs]
+ovidiu@fendows:~/use17$ screen -ls
+There is a screen on:
+        989.jobs        (07/31/26 10:05:41)     (Detached)
+1 Socket in /run/screen/S-ovidiu.
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-19 -----
+
+
+----- SCREEN E3-20: screen -X quit ends the session -----
+ovidiu@fendows:~/use17$ screen -r jobs
+[detached from 989.jobs]
+ovidiu@fendows:~/use17$ screen -ls
+There is a screen on:
+        989.jobs        (07/31/26 10:05:41)     (Detached)
+1 Socket in /run/screen/S-ovidiu.
+ovidiu@fendows:~/use17$ screen -X -S jobs quit; screen -ls
+No Sockets found in /run/screen/S-ovidiu.
+
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E3-20 -----
+
+
+===== PART 6 - SCREENS: EDITING A FILE INSIDE A SESSION (EPISODE 4) =====
+
+$ cat notes.txt
+run the preprocessing step
+check the output size
+[exit 0]
+$ md5sum notes.txt
+1a7b3b30db771a1296558582850d00c2  notes.txt
+[exit 0]
+$ cat report.txt
+alpha
+beta
+gamma
+[exit 0]
+$ md5sum report.txt
+6c7831c26f0d0a5f807006854aa682f4  report.txt
+[exit 0]
+$ rm -f ~/.viminfo; ls -a ~ | grep viminfo || echo "no ~/.viminfo"
+no ~/.viminfo
+[exit 0]
+
+----- SCREEN E4-01: a session for the editing work -----
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[edit] 0:bash*                                         "fendows" 10:05 31-Jul-26
+----- END SCREEN E4-01 -----
+
+
+----- SCREEN E4-02: nano opened inside the session; the tmux status line is still there -----
+  GNU nano 7.2                        notes.txt
+run the preprocessing step
+check the output size
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                [ Read 2 lines ]
+^G Help      ^O Write Out ^W Where Is  ^K Cut       ^T Execute   ^C Location
+^X Exit      ^R Read File ^\ Replace   ^U Paste     ^J Justify   ^/ Go To Line
+[edit] 0:bash*                                         "fendows" 10:05 31-Jul-26
+----- END SCREEN E4-02 -----
+
+
+----- SCREEN E4-03: a third line typed; the title bar marks the buffer as changed -----
+  GNU nano 7.2                        notes.txt *
+run the preprocessing step
+check the output size
+archive the log directory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+^G Help      ^O Write Out ^W Where Is  ^K Cut       ^T Execute   ^C Location
+^X Exit      ^R Read File ^\ Replace   ^U Paste     ^J Justify   ^/ Go To Line
+[edit] 0:nano*                                         "fendows" 10:05 31-Jul-26
+----- END SCREEN E4-03 -----
+
+
+----- SCREEN E4-04: detaching while nano is still running and the buffer is unwritten -----
+ovidiu@fendows:~/use17$ tmux new -s edit
+[detached (from session edit)]
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E4-04 -----
+
+$ cat notes.txt
+run the preprocessing step
+check the output size
+[exit 0]
+$ md5sum notes.txt
+1a7b3b30db771a1296558582850d00c2  notes.txt
+[exit 0]
+$ tmux ls
+edit: 1 windows (created Fri Jul 31 10:05:50 2026)
+[exit 0]
+
+----- SCREEN E4-05: reattaching returns the same nano screen with the same buffer -----
+  GNU nano 7.2                        notes.txt *
+run the preprocessing step
+check the output size
+archive the log directory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+^G Help      ^O Write Out ^W Where Is  ^K Cut       ^T Execute   ^C Location
+^X Exit      ^R Read File ^\ Replace   ^U Paste     ^J Justify   ^/ Go To Line
+[edit] 0:nano*                                         "fendows" 10:05 31-Jul-26
+----- END SCREEN E4-05 -----
+
+
+----- SCREEN E4-06: Ctrl+B w is taken by tmux, which shows its window list instead of nano's search -----
+(0) - edit: 1 windows (attached)
+(1) └─> 0: [tmux]*
+
+
+
+
+
+
+
+
+
+┌ 0 (sort: index) ─────────────────────────────────────────────────────────────┐
+│   GNU nano 7.2                        notes.txt *                            │
+│ run the preprocessing step                                                   │
+│ check the output size                                                        │
+│ archive the log directory                                                    │
+│                                     ┌───┐                                    │
+│                                     │ 0 │                                    │
+│                                     └───┘                                    │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+[edit] 0:[tmux]*                                       "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-06 -----
+
+
+----- SCREEN E4-07: Escape leaves the window list and nano is back -----
+  GNU nano 7.2                        notes.txt *
+run the preprocessing step
+check the output size
+archive the log directory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+^G Help      ^O Write Out ^W Where Is  ^K Cut       ^T Execute   ^C Location
+^X Exit      ^R Read File ^\ Replace   ^U Paste     ^J Justify   ^/ Go To Line
+[edit] 0:nano*                                         "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-07 -----
+
+
+----- SCREEN E4-08: Ctrl+O then Enter writes the buffer to notes.txt -----
+  GNU nano 7.2                        notes.txt
+run the preprocessing step
+check the output size
+archive the log directory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                               [ Wrote 3 lines ]
+^G Help      ^O Write Out ^W Where Is  ^K Cut       ^T Execute   ^C Location
+^X Exit      ^R Read File ^\ Replace   ^U Paste     ^J Justify   ^/ Go To Line
+[edit] 0:nano*                                         "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-08 -----
+
+
+----- SCREEN E4-09: Ctrl+X leaves nano -----
+ovidiu@fendows:~/use17$ nano notes.txt
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[edit] 0:nano*                                         "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-09 -----
+
+$ cat notes.txt
+run the preprocessing step
+check the output size
+archive the log directory
+[exit 0]
+$ md5sum notes.txt
+6ec3405b83adf33a553e6c48531c7108  notes.txt
+[exit 0]
+$ wc -l notes.txt
+3 notes.txt
+[exit 0]
+
+----- SCREEN E4-10: Ctrl+B twice: the terminal echoes the one literal Ctrl+B that reached the pane -----
+ovidiu@fendows:~/use17$ nano notes.txt
+ovidiu@fendows:~/use17$ cat -v
+^B
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[edit] 0:cat*                                          "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-10 -----
+
+
+----- SCREEN E4-11: cat -v prints the byte it received, so the second Ctrl+B arrived at the program -----
+ovidiu@fendows:~/use17$ nano notes.txt
+ovidiu@fendows:~/use17$ cat -v
+^B
+^B
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[edit] 0:cat*                                          "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-11 -----
+
+--- the staged failure: the session is killed with an unwritten buffer ---
+
+----- SCREEN E4-12: vim in the pane, before any change -----
+alpha
+beta
+gamma
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+"report.txt" 3L, 17B                                          1,1           All
+[edit] 0:vim*                                          "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-12 -----
+
+
+----- SCREEN E4-13: a fourth line typed in insert mode and not written -----
+alpha
+delta
+beta
+gamma
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+-- INSERT --                                                  2,6           All
+[edit] 0:vim*                                          "fendows" 10:06 31-Jul-26
+----- END SCREEN E4-13 -----
+
+$ tmux kill-session -t edit
+[exit 0]
+
+----- SCREEN E4-14: the pane is back at the shell: killing the session ended vim with it -----
+ovidiu@fendows:~/use17$ tmux new -s edit
+[detached (from session edit)]
+ovidiu@fendows:~/use17$ tmux attach -t edit
+[exited]
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E4-14 -----
+
+$ ls -a
+.
+..
+.report.txt.swp
+build.log
+notes.txt
+plain.log
+report.txt
+ticker.sh
+tmux.log
+[exit 0]
+$ cat report.txt
+alpha
+beta
+gamma
+[exit 0]
+$ md5sum report.txt
+6c7831c26f0d0a5f807006854aa682f4  report.txt
+[exit 0]
+$ ls -l .report.txt.swp
+-rw-r--r-- 1 ovidiu ovidiu 12288 Jul 31 10:06 .report.txt.swp
+[exit 0]
+
+----- SCREEN E4-15: vim -r reads the swap file and reports what it recovered -----
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Using swap file ".report.txt.swp"
+Original file "~/use17/report.txt"
+Recovery completed. You should check if everything is OK.
+(You might want to write out this file under another name
+and run diff with the original file to check for changes)
+You may want to delete the .swp file now.
+
+Press ENTER or type command to continue
+----- END SCREEN E4-15 -----
+
+
+----- SCREEN E4-16: the recovered buffer holds the line that was never written -----
+alpha
+delta
+beta
+gamma
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+                                                              2,5           All
+----- END SCREEN E4-16 -----
+
+
+----- SCREEN E4-17: the swap file removed after the recovery -----
+ovidiu@fendows:~/use17$ tmux new -s edit
+[detached (from session edit)]
+ovidiu@fendows:~/use17$ tmux attach -t edit
+[exited]
+ovidiu@fendows:~/use17$ vim -r report.txt
+ovidiu@fendows:~/use17$ rm -f .report.txt.swp; ls -a
+.  ..  build.log  notes.txt  plain.log  report.txt  ticker.sh  tmux.log
+ovidiu@fendows:~/use17$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN E4-17 -----
+
+
+===== PART 7 - MODEL ANSWERS FOR THE EXERCISES =====
+
+--- ex1: a named session whose command keeps writing while detached ---
+$ tmux kill-server 2>/dev/null; tmux new-session -d -s ex1 -x 80 -y 24 -c "$HOME/use17" "$HOME/use17/ticker.sh > $HOME/use17/ex1.log 2>&1"
+[exit 0]
+$ tmux ls
+ex1: 1 windows (created Fri Jul 31 10:06:25 2026)
+[exit 0]
+$ sleep 5; wc -l < ex1.log
+5
+[exit 0]
+$ sleep 5; wc -l < ex1.log
+10
+[exit 0]
+$ tmux kill-session -t ex1; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ sleep 2; wc -l < ex1.log; pgrep -af "bash .*ticker.sh" || echo "no ticker.sh process is running"
+10
+no ticker.sh process is running
+[exit 0]
+
+--- ex2: a two-window layout, read back with the tmux command interface ---
+$ tmux new-session -d -s ex2 -x 80 -y 24 -c "$HOME/use17"
+[exit 0]
+$ tmux rename-window -t ex2:0 watch
+[exit 0]
+$ tmux split-window -h -t ex2:watch
+[exit 0]
+$ tmux new-window -t ex2 -n edit
+[exit 0]
+$ tmux list-windows -t ex2
+0: watch- (2 panes) [80x24] [layout 8205,80x24,0,0{40x24,0,0,0,39x24,41,0,1}] @0
+1: edit* (1 panes) [80x24] [layout b25f,80x24,0,0,2] @1 (active)
+[exit 0]
+$ tmux list-panes -a -t ex2
+ex2:0.0: [40x24] [history 0/2000, 960 bytes] %0
+ex2:0.1: [39x24] [history 0/2000, 960 bytes] %1 (active)
+ex2:1.0: [80x24] [history 0/2000, 960 bytes] %2 (active)
+[exit 0]
+$ tmux kill-session -t ex2
+[exit 0]
+
+--- ex3: an edit that survives a detach, verified from outside the session ---
+$ printf "step one\nstep two\n" > plan.txt; md5sum plan.txt; wc -l plan.txt
+9c4e2ad5b634763376b29b8277f9125e  plan.txt
+2 plan.txt
+[exit 0]
+$ tmux new-session -d -s ex3 -x 80 -y 24 -c "$HOME/use17" "nano plan.txt"
+[exit 0]
+$ sleep 2; tmux send-keys -t ex3 Down End Enter; sleep 1; tmux send-keys -t ex3 -l "step three"; sleep 1; tmux ls
+ex3: 1 windows (created Fri Jul 31 10:06:37 2026)
+[exit 0]
+$ md5sum plan.txt
+9c4e2ad5b634763376b29b8277f9125e  plan.txt
+[exit 0]
+$ tmux send-keys -t ex3 C-o; sleep 1; tmux send-keys -t ex3 Enter; sleep 1; tmux send-keys -t ex3 C-x; sleep 1; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ cat plan.txt
+step one
+step two
+step three
+[exit 0]
+$ md5sum plan.txt
+0534a1011da84601ecb1de6b3f35636b  plan.txt
+[exit 0]
+$ wc -l plan.txt
+3 plan.txt
+[exit 0]
+$ tmux kill-server 2>/dev/null; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+
+--- hx1: the hands-on task, executed end to end ---
+$ tmux new-session -d -s hx1 -x 80 -y 24 -c "$HOME/use17"
+[exit 0]
+$ tmux rename-window -t hx1:0 run
+[exit 0]
+$ tmux send-keys -t hx1:run "$HOME/use17/ticker.sh > $HOME/use17/hx1.log 2>&1" Enter; sleep 3; wc -l < hx1.log
+3
+[exit 0]
+$ tmux new-window -t hx1 -n edit -c "$HOME/use17"
+[exit 0]
+$ tmux send-keys -t hx1:edit "nano hx1-notes.txt" Enter; sleep 2; tmux send-keys -t hx1:edit -l "the run started"; sleep 1
+[exit 0]
+$ tmux list-windows -t hx1
+0: run- (1 panes) [80x24] [layout b25d,80x24,0,0,0] @0
+1: edit* (1 panes) [80x24] [layout b25e,80x24,0,0,1] @1 (active)
+[exit 0]
+$ tmux detach-client -s hx1 2>/dev/null; tmux ls
+hx1: 2 windows (created Fri Jul 31 10:06:44 2026)
+[exit 0]
+$ sleep 5; wc -l < hx1.log
+11
+[exit 0]
+$ tmux send-keys -t hx1:edit C-o; sleep 1; tmux send-keys -t hx1:edit Enter; sleep 1; tmux send-keys -t hx1:edit C-x; sleep 1; cat hx1-notes.txt
+the run started
+[exit 0]
+$ md5sum hx1-notes.txt
+bd1cfa48a38463ecb28c2683239d96a1  hx1-notes.txt
+[exit 0]
+$ tmux send-keys -t hx1:run C-c; sleep 1; tmux kill-session -t hx1; sleep 1; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ pgrep -af "bash .*ticker.sh" || echo "no ticker.sh process is running"
+no ticker.sh process is running
+[exit 0]
+
+===== PART 8 - CLEANUP AND VERIFICATION =====
+
+$ pgrep -af 'bash .*ticker.sh' || echo 'no ticker.sh process is running'
+no ticker.sh process is running
+[exit 0]
+$ tmux kill-server 2>/dev/null; tmux ls
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ screen -ls
+No Sockets found in /run/screen/S-ovidiu.
+
+[exit 1]
+$ ls ~/use17
+build.log
+ex1.log
+hx1-notes.txt
+hx1.log
+notes.txt
+plain.log
+plan.txt
+report.txt
+ticker.sh
+tmux.log
+[exit 0]
+$ cd ~ && rm -rf ~/use17 && ls -d ~/use17 2>&1
+ls: cannot access '/home/ovidiu/use17': No such file or directory
+[exit 2]
+$ ls -l /tmp/tmux-$(id -u)/ 2>&1
+total 0
+srw-rw---- 1 ovidiu ovidiu 0 Jul 31 10:06 default
+[exit 0]
+$ pgrep -af "tmux|screen|ticker" || echo "no tmux, screen or ticker process is running"
+no tmux, screen or ticker process is running
+[exit 0]
+
+===== HARVEST COMPLETE =====
+
+2026-07-31T07:07:02Z
