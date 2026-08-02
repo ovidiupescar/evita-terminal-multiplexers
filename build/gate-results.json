@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "gate": "static-preflight",
-  "validator_version": "0.4.0",
+  "validator_version": "0.5.0",
   "checks": [
     "schema",
     "placeholders",
@@ -16,14 +16,15 @@
     "rubric-rendering",
     "transcript-attribution",
     "visual-outcome-figure",
-    "self-check-script"
+    "self-check-script",
+    "module-hours"
   ],
-  "timestamp": "2026-07-31T07:31:52.946113+00:00",
+  "timestamp": "2026-08-02T21:23:09.529624+00:00",
   "git": {
-    "sha": "48fabef5831bab684b2cc4d1b67746f594d7e8ee",
+    "sha": "74abfb8ab20ec52c89671fd6434c1325824d62d8",
     "dirty": true
   },
-  "inputs_sha256": "c804c0632754a5019e5b3f979ea9a56bf3bff4d541d239cfd4029673dd5a3178",
+  "inputs_sha256": "f131303aabfb0ecc735eef9238e92ae16553a29906048b28e5c2c115d8c42569",
   "files_hashed": [
     "masks.yaml",
     "module.yaml",

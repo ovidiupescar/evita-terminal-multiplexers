@@ -39,13 +39,20 @@ no assessment and an assessment with no outcome.
 | Path | Specification | Evidence |
 |---|---|---|
 | Windows | Windows 11 + WSL2 Ubuntu 24.04.1 LTS, tmux 3.4, GNU Screen 4.09.01, GNU nano 7.2, Vim 9.1, ordinary user | verified |
-| Linux | Ubuntu 24.04 LTS in a disposable VM or on bare metal, same packages | supported |
+| Linux | Ubuntu 24.04.4 LTS VM, kernel 6.8.0-136-generic, systemd as PID 1, tmux 3.4-1ubuntu0.1, GNU Screen 4.9.1-1ubuntu1, GNU nano 7.2-2ubuntu0.2, Vim 9.1 | verified |
 | macOS | Multipass or UTM running Ubuntu 24.04 LTS | supported |
 | HPC cluster | Generic EuroHPC login node, tmux or screen over SSH | supported |
 
-Every transcript was harvested on the Windows path. The other three run the
-same distribution and the same packages; they are marked supported because
-they were not executed during authoring, which is what that word means here.
+Two of the four paths carry executed evidence. The episode transcripts were
+harvested on the Windows path. The Linux path was verified separately on
+2026-08-03 by `evidence/dry-run-linux.sh`, which re-executes the spine of
+every episode on a real Linux virtual machine and writes
+`evidence/transcript-linux-dryrun.txt`; that machine is a QEMU/KVM guest
+booted from the official Ubuntu 24.04 cloud image, where `uname -r` reports
+`6.8.0-136-generic` with no vendor suffix, `ps -p 1` reports `systemd` and
+`systemd-detect-virt` reports `kvm`. Nothing behaved differently there and no
+episode text changed as a result. macOS and the cluster remain *supported*:
+they run the same packages but were not executed.
 
 ## How the screens were produced
 
@@ -140,9 +147,12 @@ option list items, four for each of the five questions.
    command runs on the learner's own machine as an ordinary user. The
    statement that a login node normally has a multiplexer installed is a
    declared working assumption in the source ledger.
-2. **One host path was executed.** All transcripts come from WSL2 on
-   Windows 11. The Linux and macOS paths run the same Ubuntu 24.04 packages
-   and are expected to behave identically, but they were not executed.
+2. **Two host paths were executed, not four.** The episode transcripts come
+   from WSL2 on Windows 11, and the Linux path was re-executed end to end on
+   an Ubuntu 24.04 virtual machine (see the environment table above). macOS
+   was not executed: on Apple Silicon the guest is arm64, and while the same
+   Ubuntu packages and the same key bindings apply, that architecture was not
+   available during authoring.
 3. **Timings are estimates.** The minute figures in the instructor guide
    come from the structure of the material, not from a dry run with a
    cohort. They should be corrected after the first delivery.

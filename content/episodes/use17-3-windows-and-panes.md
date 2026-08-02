@@ -117,7 +117,7 @@ the use case: two things at once, in one connection, in one directory.
 `Ctrl+B o` cycles. `Ctrl+B` and an arrow key goes in a direction, which is
 easier once there are more than two panes.
 
-**Step 5. Split again, top and bottom: Ctrl+B then "**.
+**Step 5. Split again, top and bottom: Ctrl+B then `"`.**
 
 ```text
 trainee@trainvm:~/use17$ wc -l ~/use17/bu│trainee@trainvm:~/use17$ tail -f ~/use17

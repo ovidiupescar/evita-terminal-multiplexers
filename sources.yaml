@@ -240,3 +240,49 @@ sources:
       fixture: evidence/transcript-setup.txt
     last_verified: 2026-07-31
     recheck_due: 2027-07-31
+  - id: own-observation-ctrl-w-passes-through
+    claim: >-
+      Only the prefix key is intercepted by tmux; every other control key
+      reaches the program running in the pane. Observed on the pinned Linux
+      guest with nano 7.2 inside a tmux 3.4 pane: Ctrl+B followed by w opens
+      tmux's own window list (choose-tree) and nano never sees the keys, while
+      Ctrl+W pressed on its own opens nano's Where Is prompt. The doubled
+      prefix is a separate mechanism, send-prefix, which delivers a literal
+      Ctrl+B into the pane; with the cursor at the end of the typed line it
+      moved the cursor from column 36 to column 35 rather than producing any
+      search prompt. This is the basis of the answer to quiz question 4.
+    evidence_level: verified
+    url: "evidence/transcript-linux-dryrun.txt"
+    source_type: own-observation
+    version_scope: "tmux 3.4-1ubuntu0.1 with nano 7.2-2ubuntu0.2 on Ubuntu 24.04.4"
+    used_in: [content/episodes/quiz/quiz.md, content/episodes/use17-4-editing-in-a-session.md, content/authoring-evidence.md]
+    verified:
+      date: 2026-08-03
+      by: technical-sme
+      fixture: evidence/transcript-linux-dryrun.txt
+    last_verified: 2026-08-03
+    recheck_due: 2027-08-03
+  - id: own-observation-linux-dry-run
+    claim: >-
+      The module behaves identically on a real Linux virtual machine and on
+      the WSL2 path the episode transcripts were harvested on. Re-executed on
+      2026-08-03 on a QEMU/KVM guest booted from the official Ubuntu 24.04
+      cloud image (uname -r 6.8.0-136-generic with no vendor suffix, PID 1
+      systemd, systemd-detect-virt kvm): session create, detach, list and
+      reattach; the two splits and the pane-number query; nano detached
+      mid-edit and reattached with the buffer intact; the GNU screen
+      fallback; and a verified cleanup leaving no session and no tmux process.
+      No episode text changed as a result, which is why the local-linux
+      environment is now marked verified rather than supported.
+    evidence_level: verified
+    url: "evidence/transcript-linux-dryrun.txt"
+    source_type: own-observation
+    version_scope: "Ubuntu 24.04.4 LTS, tmux 3.4-1ubuntu0.1, screen 4.9.1-1ubuntu1, nano 7.2-2ubuntu0.2"
+    used_in: [content/authoring-evidence.md]
+    verified:
+      date: 2026-08-03
+      by: technical-sme
+      fixture: evidence/transcript-linux-dryrun.txt
+    last_verified: 2026-08-03
+    recheck_due: 2027-08-03
+

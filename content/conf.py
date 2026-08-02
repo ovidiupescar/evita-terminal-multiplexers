@@ -6,6 +6,8 @@
 
 # -- Path setup --------------------------------------------------------------
 
+import os
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -98,22 +100,40 @@ html_static_path = ["_static"]
 # html_css_files = ["overrides.css"]
 
 # Some theme options such as logo are defined by sphinx-evita extensions
+# Source links ("View this page" / "Edit this page") and the repository icon in
+# the footer are only useful to a reader who can open the repository. This
+# module's repository is private, so they are OFF by default: a link that
+# answers 404 is worse than no link. Set EVITA_SOURCE_LINKS=1 when building a
+# copy for people who do have access, or permanently once the repository is
+# public.
+#
+# The template this module started from carried GitLab link templates
+# (/-/edit/, /-/blob/) while git_forge is github.com, which produced URLs that
+# answered 404 even for someone with access. The keys below are furo's native
+# GitHub ones, which build the correct /edit/<branch>/ and /blob/<branch>/
+# paths.
+source_links = os.environ.get("EVITA_SOURCE_LINKS", "") == "1"
+
 html_theme_options = {
-    # Gitlab
-    "source_edit_link": f"{git_repo_url}/-/edit/{git_version}/{conf_py_path}/{{filename}}",
-    "source_view_link": f"{git_repo_url}/-/blob/{git_version}/{conf_py_path}/{{filename}}?plain=1",
-    # Github
-    # "source_repository": git_repo_url,
-    # "source_branch": git_version,
-    # "source_directory": conf_py_path,
+    **(
+        {
+            "source_repository": git_repo_url,
+            "source_branch": git_version,
+            "source_directory": conf_py_path,
+        }
+        if source_links
+        else {}
+    ),
     "footer_icons": [
         {
             "name": git_forge,
             "url": git_repo_url,
-            "html": icons.github if git_forge == "github.com" else icons.gitlab, 
+            "html": icons.github if git_forge == "github.com" else icons.gitlab,
             "class": "",
         },
-    ],
+    ]
+    if source_links
+    else [],
 }
 
 

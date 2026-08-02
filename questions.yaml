@@ -91,21 +91,26 @@ questions:
       prompt, a list of the windows of the session appears. Which statement
       describes what happened and how to reach nano with that key?
     options:
-      - "tmux read Ctrl+B as its prefix and took the next key as its own command; pressing Ctrl+B twice sends one Ctrl+B through to nano"
+      - "tmux read Ctrl+B as its prefix and took w as its own command; Ctrl+W is not the prefix, so pressing Ctrl+W on its own reaches nano untouched"
       - "nano stops reading control keys while its buffer differs from the file, so tmux received the key and answered with its own window list"
       - "the pane had been left in copy mode, where tmux reads the keys itself; leaving copy mode with q gives Ctrl+B back to nano"
       - "the terminal delivers Ctrl+B to the process in the foreground of the outermost shell, which is the tmux client rather than nano"
-    answer: "tmux read Ctrl+B as its prefix and took the next key as its own command; pressing Ctrl+B twice sends one Ctrl+B through to nano"
+    answer: "tmux read Ctrl+B as its prefix and took w as its own command; Ctrl+W is not the prefix, so pressing Ctrl+W on its own reaches nano untouched"
     misconceptions:
       - "the key conflict attributed to the editor rather than to the prefix"
+      - "the doubled prefix treated as the way to reach any control key of the program in the pane, rather than as the way to send a literal prefix key"
       - "the prefix confused with copy mode"
       - "keys assumed to reach the outermost process instead of the pane"
     feedback: >-
-      tmux watches for its prefix, Ctrl+B by default, and reads the key that
-      follows as a tmux command; w is choose-tree. The pane never sees
-      either key. Pressing the prefix twice sends the literal Ctrl+B to the
-      program in the pane, which is how nano's Where Is is reached from
-      inside a session (Episode 4).
+      tmux watches for one key, its prefix, which is Ctrl+B by default, and
+      reads the key that follows as a tmux command; w is choose-tree. The
+      pane never saw either keystroke. The repair is to stop prefixing and
+      press Ctrl+W by itself: exactly one key is taken away from the program
+      in the pane, and every other key, Ctrl+W included, reaches it
+      unchanged. Pressing the prefix twice is a different command,
+      send-prefix, which delivers a literal Ctrl+B to the program in the
+      pane; that is what you need when the program itself uses Ctrl+B, and it
+      would not have produced a search prompt here (Episode 4).
     exposure: formative
   - id: q5
     outcome_ids: [O2]

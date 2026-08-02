@@ -25,12 +25,21 @@ environments:
       own.
   - id: local-linux
     audience_path: linux
-    specification: "Ubuntu 24.04 LTS in a disposable VM (Multipass, libvirt, VirtualBox) or on bare metal, tmux 3.4, GNU Screen 4.9.1, ordinary user account"
-    evidence: supported
+    specification: "Ubuntu 24.04.4 LTS in a disposable VM (QEMU/KVM, Multipass, libvirt, VirtualBox) or on bare metal, kernel 6.8.0-136-generic, systemd as PID 1, tmux 3.4-1ubuntu0.1, GNU Screen 4.9.1-1ubuntu1, GNU nano 7.2-2ubuntu0.2, Vim 9.1, ordinary user account"
+    evidence: verified
     note: >-
-      Same distribution and same packages as the verified path. The Ubuntu
-      24.04 archive carries tmux 3.4-1ubuntu0.1 and screen 4.9.1-1ubuntu1,
-      recorded in evidence/transcript-setup.txt.
+      Verified by a second, independent dry run on 2026-08-03, after a
+      reviewer pointed out that only the WSL2 path carried executed evidence.
+      evidence/dry-run-linux.sh re-executes the spine of every episode on a
+      real Linux virtual machine (QEMU/KVM guest booted from the official
+      Ubuntu 24.04 cloud image; uname -r reports 6.8.0-136-generic with no
+      vendor suffix, ps -p 1 reports systemd and systemd-detect-virt reports
+      kvm), and the result is evidence/transcript-linux-dryrun.txt. It covers
+      the session lifecycle of Episode 2, the splits and pane query of
+      Episode 3, the detach-mid-edit and reattach of Episode 4, the GNU
+      screen fallback, and the verified cleanup. The package versions found
+      there are the ones this specification pins. Nothing behaved differently
+      from the WSL2 path, and no episode text had to change as a result.
   - id: local-macos
     audience_path: macos
     specification: "macOS + Multipass or UTM running Ubuntu 24.04 LTS, ordinary user account"

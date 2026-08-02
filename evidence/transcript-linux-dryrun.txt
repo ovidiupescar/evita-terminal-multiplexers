@@ -1,0 +1,743 @@
+
+===== PART 0 - WHICH MACHINE THIS IS =====
+
+$ grep PRETTY_NAME /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+[exit 0]
+$ uname -r
+6.8.0-136-generic
+[exit 0]
+$ ps -p 1 -o comm=
+systemd
+[exit 0]
+$ systemd-detect-virt
+kvm
+[exit 0]
+$ id -un
+ubuntu
+[exit 0]
+$ tmux -V
+tmux 3.4
+[exit 0]
+$ screen --version | head -1
+Screen version 4.09.01 (GNU) 20-Aug-23
+[exit 0]
+$ nano --version | head -1
+ GNU nano, version 7.2
+[exit 0]
+$ dpkg-query -W -f "\${binary:Package} \${Version}\n" tmux screen nano vim
+nano 7.2-2ubuntu0.2
+screen 4.9.1-1ubuntu1
+tmux 3.4-1ubuntu0.1
+vim 2:9.1.0016-1ubuntu7.18
+[exit 0]
+$ ls -l ~/.tmux.conf /etc/tmux.conf 2>&1
+ls: cannot access '/home/ubuntu/.tmux.conf': No such file or directory
+ls: cannot access '/etc/tmux.conf': No such file or directory
+[exit 2]
+$ mkdir -p ~/use17-linux && cd ~/use17-linux && pwd
+/home/ubuntu/use17-linux
+[exit 0]
+
+===== PART 1 - EPISODE 2 SPINE: A SESSION THAT OUTLIVES ITS CLIENT =====
+
+
+----- SCREEN L1-01: a detached session exists on the Linux guest -----
+ubuntu@trainvm:~/use17-linux$ tmux new-session -d -s build
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN L1-01 -----
+
+
+----- SCREEN L1-02: attached, inside the session -----
+ubuntu@trainvm:~/use17-linux$ echo "work happens here" > ~/use17-linux/inside.tx
+t
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[build] 0:bash*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L1-02 -----
+
+
+----- SCREEN L1-03: detached with Ctrl+B d, back in the outer shell -----
+ubuntu@trainvm:~/use17-linux$ tmux new-session -d -s build
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN L1-03 -----
+
+
+----- SCREEN L1-04: the session survived the detach and its work is on disk -----
+ubuntu@trainvm:~/use17-linux$ tmux new-session -d -s build
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ cat ~/use17-linux/inside.txt
+work happens here
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN L1-04 -----
+
+
+===== PART 2 - EPISODE 3 SPINE: WINDOWS AND PANES =====
+
+
+----- SCREEN L2-01: Ctrl+B % split side by side -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[build] 0:bash*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L2-01 -----
+
+
+----- SCREEN L2-02: Ctrl+B " split top and bottom - the key is the double-quote character -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │ubuntu@trainvm:~/use17-linux$
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[build] 0:bash*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L2-02 -----
+
+
+----- SCREEN L2-03: Ctrl+B q shows the pane numbers -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │ubuntu@trainvm:~/use17-linux$
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[build] 0:bash*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L2-03 -----
+
+
+----- SCREEN L2-04: three panes in this window -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │ubuntu@trainvm:~/use17-linux$ tmux list
+                                        │-panes -t build
+                                        │0: [40x23] [history 1/2000, 5133 bytes]
+                                        │ %0
+                                        │1: [39x11] [history 0/2000, 1325 bytes]
+                                        │ %1
+                                        │2: [39x11] [history 0/2000, 1972 bytes]
+                                        │ %2 (active)
+                                        │ubuntu@trainvm:~/use17-linux$
+                                        │
+                                        │
+[build] 0:bash*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L2-04 -----
+
+
+===== PART 3 - EPISODE 4 SPINE: EDITING, DETACHING MID-EDIT, REATTACHING =====
+
+
+----- SCREEN L3-01: nano with an unwritten buffer inside the session -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │<ction
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │^G Help      ^O Write Out ^W Where Is
+                                        │^X Exit      ^R Read File ^\ Replace
+[build] 0:nano*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L3-01 -----
+
+
+----- SCREEN L3-02: detached while nano still holds the unwritten buffer -----
+ubuntu@trainvm:~/use17-linux$ tmux new-session -d -s build
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ cat ~/use17-linux/inside.txt
+work happens here
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN L3-02 -----
+
+
+----- SCREEN L3-03: the session is still there, nano still running inside it -----
+ubuntu@trainvm:~/use17-linux$ tmux new-session -d -s build
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ cat ~/use17-linux/inside.txt
+work happens here
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+
+
+----- END SCREEN L3-03 -----
+
+
+----- SCREEN L3-04: reattached: the buffer is exactly as it was left -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │<ction
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │^G Help      ^O Write Out ^W Where Is
+                                        │^X Exit      ^R Read File ^\ Replace
+[build] 0:nano*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L3-04 -----
+
+
+===== PART 4 - EVIDENCE FOR QUIZ QUESTION 4: WHICH KEYS TMUX TAKES =====
+
+--- The learner wants nano's Where Is search, which is Ctrl+W.
+--- First the mistake the question describes: prefixing it with Ctrl+B.
+
+----- SCREEN L4-01: Ctrl+B then w: tmux took w as its own command and showed the window list -----
+(0) - build: 1 windows (attached)
+(1) └─> + 0: [tmux]*Z
+
+
+
+
+
+
+
+
+
+┌ 0 (sort: index) ─────────────────────────────────────────────────────────────┐
+│  ~/use17-linux/inside.tx│~/use17-linux$          │...ubuntu/use17-linux/note │
+│                         │                        │<ction                     │
+│ /use17-linux$           │                        │                           │
+│                         │                        │                           │
+│           ┌───┐         │          ┌───┐         │          ┌───┐            │
+│           │ 0 │         │          │ 1 │         │          │ 2 │            │
+│           └───┘         │          └───┘         │          └───┘            │
+│                         │                        │                           │
+│                         │                        │                           │
+│                         │                        │^G Help      ^O Write Out  │
+└──────────────────────────────────────────────────────────────────────────────┘
+[build] 0:[tmux]*Z                                     "trainvm" 21:16 02-Aug-26
+----- END SCREEN L4-01 -----
+
+
+----- SCREEN L4-02: q leaves that list and returns to nano -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │<ction
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │^G Help      ^O Write Out ^W Where Is
+                                        │^X Exit      ^R Read File ^\ Replace
+[build] 0:nano*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L4-02 -----
+
+--- Now the same key WITHOUT the prefix. Ctrl+W is not tmux's prefix,
+--- so tmux does not intercept it and nano receives it.
+
+----- SCREEN L4-03: Ctrl+W on its own: nano's Where Is prompt, no prefix involved -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │<ction
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │Search:
+                                        │^G Help      M-C Case SensM-B Backwards
+                                        │^C Cancel    M-R Reg.exp. ^R Replace
+[build] 0:nano*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L4-03 -----
+
+
+----- SCREEN L4-04: Ctrl+C cancels the search prompt and gives the buffer back -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │<ction
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │             [ Cancelled ]
+                                        │^G Help      ^O Write Out ^W Where Is
+                                        │^X Exit      ^R Read File ^\ Replace
+[build] 0:nano*                                        "trainvm" 21:16 02-Aug-26
+----- END SCREEN L4-04 -----
+
+--- And the doubled prefix, which is a different repair for a different
+--- problem: it delivers a literal Ctrl+B to the program in the pane.
+--- A text capture cannot show a cursor, so the cursor column is read
+--- from the learner's own tmux server before and after the keys.
+$ tmux display-message -p -t build "cursor column at end of line: #{cursor_x}"
+cursor column at end of line: 6
+[exit 0]
+$ tmux display-message -p -t build "cursor column after Ctrl+B Ctrl+B: #{cursor_x}"
+cursor column after Ctrl+B Ctrl+B: 36
+[exit 0]
+$ tmux display-message -p -t build "cursor column after a second doubled prefix: #{cursor_x}"
+cursor column after a second doubled prefix: 35
+[exit 0]
+
+----- SCREEN L4-05: the buffer is unchanged: the literal Ctrl+B reached nano as a cursor movement, not as a tmux command -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │a line typed before the disconnection
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │             [ Cancelled ]
+                                        │^G Help      ^O Write Out ^W Where Is
+                                        │^X Exit      ^R Read File ^\ Replace
+[build] 0:nano*                                        "trainvm" 21:17 02-Aug-26
+----- END SCREEN L4-05 -----
+
+
+===== PART 5 - LEAVING NANO AND THE SESSION CLEANLY =====
+
+
+----- SCREEN L5-01: Ctrl+X asks whether to save the modified buffer -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │...ubuntu/use17-linux/notes.txt *
+                                        │a line typed before the disconnection
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │Save modified buffer?
+                                        │ Y Yes
+                                        │ N No           ^C Cancel
+[build] 0:nano*                                        "trainvm" 21:17 02-Aug-26
+----- END SCREEN L5-01 -----
+
+
+----- SCREEN L5-02: saved under the offered name -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │ %1
+                                        │2: [39x11] [history 0/2000, 1972 bytes]
+                                        │ %2 (active)
+                                        │ubuntu@trainvm:~/use17-linux$ nano ~/us
+                                        │e17-linux/notes.txt
+                                        │ubuntu@trainvm:~/use17-linux$
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+[build] 0:nano*                                        "trainvm" 21:17 02-Aug-26
+----- END SCREEN L5-02 -----
+
+
+----- SCREEN L5-03: the file on disk carries what was typed before the disconnection -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │ %1
+                                        │2: [39x11] [history 0/2000, 1972 bytes]
+                                        │ %2 (active)
+                                        │ubuntu@trainvm:~/use17-linux$ nano ~/us
+                                        │e17-linux/notes.txt
+                                        │ubuntu@trainvm:~/use17-linux$ cat ~/use
+                                        │17-linux/notes.txt
+                                        │a line typed before the disconnection
+                                        │ubuntu@trainvm:~/use17-linux$
+                                        │
+                                        │
+[build] 0:bash*                                        "trainvm" 21:17 02-Aug-26
+----- END SCREEN L5-03 -----
+
+
+===== PART 6 - THE PORTABLE FALLBACK IS PRESENT HERE TOO =====
+
+
+----- SCREEN L6-01: GNU screen creates and lists a detached session on this machine -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │ %1
+                                        │2: [39x11] [history 0/2000, 1972 bytes]
+                                        │ %2 (active)
+                                        │ubuntu@trainvm:~/use17-linux$ nano ~/us
+                                        │e17-linux/notes.txt
+                                        │ubuntu@trainvm:~/use17-linux$ cat ~/use
+                                        │17-linux/notes.txt
+                                        │a line typed before the disconnection
+                                        │ubuntu@trainvm:~/use17-linux$ screen -d
+                                        │mS fallback; sleep 1; screen -ls
+                                        │
+[build] 0:bash*                                        "trainvm" 21:17 02-Aug-26
+----- END SCREEN L6-01 -----
+
+
+----- SCREEN L6-02: and removes it -----
+ happens here" > ~/use17-linux/inside.tx│ubuntu@trainvm:~/use17-linux$
+t                                       │
+ubuntu@trainvm:~/use17-linux$           │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        │
+                                        ├───────────────────────────────────────
+                                        │17-linux/notes.txt
+                                        │a line typed before the disconnection
+                                        │ubuntu@trainvm:~/use17-linux$ screen -d
+                                        │mS fallback; sleep 1; screen -ls
+                                        │There is a screen on:
+                                        │        3066.fallback   (08/02/26 21:17
+                                        │:10)    (Detached)
+                                        │1 Socket in /run/screen/S-ubuntu.
+                                        │ubuntu@trainvm:~/use17-linux$ screen -S
+                                        │ fallback -X quit; sleep 1; screen -ls
+                                        │
+[build] 0:bash*                                        "trainvm" 21:17 02-Aug-26
+----- END SCREEN L6-02 -----
+
+
+===== PART 7 - CLEANUP, VERIFIED =====
+
+
+----- SCREEN L7-01: no tmux sessions remain -----
+ubuntu@trainvm:~/use17-linux$ tmux new-session -d -s build
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ cat ~/use17-linux/inside.txt
+work happens here
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[detached (from session build)]
+ubuntu@trainvm:~/use17-linux$ tmux ls
+build: 1 windows (created Sun Aug  2 21:16:27 2026)
+ubuntu@trainvm:~/use17-linux$ tmux attach -t build
+[server exited]
+ubuntu@trainvm:~/use17-linux$
+
+
+
+
+
+
+
+
+----- END SCREEN L7-01 -----
+
+$ tmux ls 2>&1
+no server running on /tmp/tmux-1000/default
+[exit 1]
+$ screen -ls 2>&1 | tail -2
+No Sockets found in /run/screen/S-ubuntu.
+
+[exit 0]
+$ pgrep -c tmux; echo "(0 means no tmux process of this user is left)"
+0
+(0 means no tmux process of this user is left)
+[exit 0]
+$ ls ~/use17-linux
+inside.txt
+notes.txt
+[exit 0]
+$ rm -rf ~/use17-linux; ls ~/use17-linux 2>&1
+ls: cannot access '/home/ubuntu/use17-linux': No such file or directory
+[exit 2]
+$ date -u +"linux dry run finished %Y-%m-%dT%H:%M:%SZ"
+linux dry run finished 2026-08-02T21:17:14Z
+[exit 0]

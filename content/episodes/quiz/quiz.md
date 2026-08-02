@@ -106,8 +106,8 @@ search, so they press Ctrl+B and then w. Instead of a search prompt, a list
 of the windows of the session appears. Which statement describes what
 happened and how to reach nano with that key?
 
-- **a)** tmux read Ctrl+B as its prefix and took the next key as its own
-  command; pressing Ctrl+B twice sends one Ctrl+B through to nano
+- **a)** tmux read Ctrl+B as its prefix and took w as its own command; Ctrl+W
+  is not the prefix, so pressing Ctrl+W on its own reaches nano untouched
 - **b)** nano stops reading control keys while its buffer differs from the
   file, so tmux received the key and answered with its own window list
 - **c)** the pane had been left in copy mode, where tmux reads the keys
@@ -118,14 +118,27 @@ happened and how to reach nano with that key?
 :::{solution} Solution Q4
 :class: dropdown
 
-**a)** tmux watches for its prefix, Ctrl+B by default, and reads the key
-that follows as a tmux command; `w` is `choose-tree`. The pane never sees
-either key, which is why option b) blames the wrong program. Copy mode in
-option c) is a different state, and its indicator would have been visible in
-the window name. Option d) would make every keystroke reach the client
-rather than the pane, and then nothing could be typed at all. Pressing the
-prefix twice invokes `send-prefix`, which delivers the literal Ctrl+B
-(Episode 4).
+**a)** tmux watches for one key, its prefix, which is Ctrl+B by default, and
+reads the key that follows as a tmux command; `w` is `choose-tree`, the
+window list. The pane never saw either keystroke.
+
+The repair is to stop prefixing: **press Ctrl+W by itself**. Ctrl+W is not
+the prefix, so tmux does not intercept it and nano receives it like any other
+key. Nothing has to be reconfigured and no mode has to be left. This is the
+general rule worth taking away: inside a tmux pane exactly one key is taken
+away from the program you are running, and every other key reaches it
+unchanged.
+
+The other options each blame the wrong part. Option b) blames nano, which
+never received the key. Copy mode in option c) is a different state, and its
+indicator would have been visible in the window name. Option d) would make
+every keystroke reach the client rather than the pane, and then nothing could
+be typed at all.
+
+Pressing the prefix twice is a real tmux command, `send-prefix`, but it
+answers a different question: it delivers a literal **Ctrl+B** to the program
+in the pane, which is what you need when that program itself uses Ctrl+B. It
+would not have produced a search prompt here (Episode 4).
 :::
 
 ## Question 5
